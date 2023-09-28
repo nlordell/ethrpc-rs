@@ -1,0 +1,23 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*/v*"
+
+jobs:
+  publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Publish
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: |
+        if [ ! -d "crates/${GITHUB_REF_NAME%/*}" ]; then
+          echo "no workspace member ${GITHUB_REF_NAME%/*}" 1>&2
+          exit 1
+        fi
+        (cd "crates/${GITHUB_REF_NAME%/*}"; cargo publish)

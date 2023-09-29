@@ -12,9 +12,6 @@ mod debug;
 mod serialization;
 pub mod types;
 
-#[cfg(feature = "http")]
-pub use reqwest;
-
 use self::types::*;
 
 module! {

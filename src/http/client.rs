@@ -1,4 +1,4 @@
-//! HTTP JSON RPC client.
+//! Ethereum JSON RPC HTTP client.
 
 use crate::{
     jsonrpc::{
@@ -13,7 +13,7 @@ use serde::Serialize;
 use std::env;
 use thiserror::Error;
 
-/// An Ethereum RPC HTTP client.
+/// An Ethereum JSON RPC HTTP client.
 pub struct Client {
     client: reqwest::Client,
     url: Url,
@@ -48,7 +48,8 @@ impl Client {
         )
     }
 
-    async fn roundtrip(&self, request: String) -> Result<String, Error> {
+    pub(super) async fn roundtrip(&self, request: String) -> Result<String, Error> {
+        tracing::trace!(%request);
         let response = self
             .client
             .post(self.url.clone())
@@ -59,6 +60,8 @@ impl Client {
 
         let status = response.status();
         let body = response.text().await?;
+
+        tracing::trace!(%status, %body);
         if !status.is_success() {
             return Err(Error::Status(status, body));
         }

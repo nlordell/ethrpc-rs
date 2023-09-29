@@ -8,7 +8,8 @@ use crate::{
     method::Method,
     types::Empty,
 };
-pub use curl::easy;
+pub use curl;
+use curl::easy::{Easy, List};
 use serde::Serialize;
 use std::{
     cell::RefCell,
@@ -20,17 +21,17 @@ use thiserror::Error;
 
 /// An Ethereum RPC HTTP client.
 pub struct Client {
-    handle: RefCell<easy::Easy>,
+    handle: RefCell<Easy>,
 }
 
 impl Client {
     /// Creates a new JSON RPC HTTP client for the specified URL with the
     /// default HTTP client.
     pub fn new(url: impl AsRef<str>) -> Result<Self, Error> {
-        let mut handle = easy::Easy::new();
+        let mut handle = Easy::new();
         handle.url(url.as_ref())?;
         handle.http_headers({
-            let mut list = easy::List::new();
+            let mut list = List::new();
             list.append("Content-Type: application/json")?;
             list
         })?;
@@ -41,7 +42,7 @@ impl Client {
     /// handle instance.
     ///
     /// This method assumes that the `url` has been set.
-    pub fn with_handle(handle: easy::Easy) -> Self {
+    pub fn with_handle(handle: Easy) -> Self {
         Self {
             handle: RefCell::new(handle),
         }

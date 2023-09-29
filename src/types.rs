@@ -509,6 +509,7 @@ pub struct TransactionCall {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<Address>,
     /// The transaction type.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<TransactionKind>,
     /// The transaction nonce.
     #[serde(skip_serializing_if = "Option::is_none")]

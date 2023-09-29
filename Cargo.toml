@@ -13,10 +13,10 @@ keywords = ["json", "rpc", "ethereum"]
 categories = ["cryptography::cryptocurrencies"]
 
 [package.metadata.docs.rs]
-features = ["http"]
+all-features = true
 
 [features]
-http = ["reqwest"]
+http = ["dep:reqwest"]
 
 [dependencies]
 arrayvec = { version = "0.7", features = ["serde"] }
@@ -28,5 +28,4 @@ thiserror = "1"
 
 [dev-dependencies]
 ethprim = { version = "0.1", features = ["macros"] }
-tokio = { version = "1", features = ["macros"] }
 hex-literal = "0.4"

@@ -10,9 +10,52 @@ use serde::{
 use serde_json::Value;
 use std::{
     fmt::{self, Formatter},
+    future::Future,
     marker::PhantomData,
+    sync::atomic::{self, AtomicU32},
 };
 use thiserror::Error;
+
+/// Executes a JSON RPC call with the provided roundtrip implementation.
+pub fn call<M, F, E>(method: M, params: M::Params, roundtrip: F) -> Result<M::Result, E>
+where
+    M: Method + Serialize,
+    F: FnOnce(String) -> Result<String, E>,
+    E: From<Error> + From<serde_json::Error>,
+{
+    let request = serde_json::to_string(&Request {
+        jsonrpc: Version::V2,
+        method,
+        params,
+        id: Id::next(),
+    })?;
+    let body = roundtrip(request)?;
+    let response = serde_json::from_str::<Response<M>>(&body)?;
+    Ok(response.result?)
+}
+
+/// Executes a JSON RPC call with the provided `async` roundtrip implementation.
+pub async fn call_async<M, F, Fut, E>(
+    method: M,
+    params: M::Params,
+    roundtrip: F,
+) -> Result<M::Result, E>
+where
+    M: Method + Serialize,
+    F: FnOnce(String) -> Fut,
+    Fut: Future<Output = Result<String, E>>,
+    E: From<Error> + From<serde_json::Error>,
+{
+    let request = serde_json::to_string(&Request {
+        jsonrpc: Version::V2,
+        method,
+        params,
+        id: Id::next(),
+    })?;
+    let body = roundtrip(request).await?;
+    let response = serde_json::from_str::<Response<M>>(&body)?;
+    Ok(response.result?)
+}
 
 /// JSON RPC supported version.
 #[derive(Debug, Deserialize, Serialize)]
@@ -31,6 +74,13 @@ pub enum Version {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, Eq, Hash, PartialEq)]
 #[serde(transparent)]
 pub struct Id(pub u32);
+
+impl Id {
+    fn next() -> Self {
+        static ID: AtomicU32 = AtomicU32::new(0);
+        Self(ID.fetch_add(1, atomic::Ordering::Relaxed))
+    }
+}
 
 /// A request object.
 #[derive(Debug, Deserialize, Serialize)]
@@ -190,8 +240,11 @@ where
             M: Method,
         {
             jsonrpc: Version,
+            #[serde(skip_serializing_if = "Option::is_none")]
             result: Option<MethodResult<'a, M>>,
+            #[serde(skip_serializing_if = "Option::is_none")]
             error: Option<&'a Error>,
+            #[serde(skip_serializing_if = "Option::is_none")]
             id: Option<Id>,
         }
 
@@ -249,6 +302,7 @@ mod response {
 pub struct Error {
     pub code: ErrorCode,
     pub message: String,
+    #[serde(default)]
     pub data: Value,
 }
 
@@ -302,5 +356,92 @@ impl From<ErrorCode> for i32 {
             ErrorCode::Reserved(code) => code,
             ErrorCode::Other(code) => code,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        eth,
+        types::{BlockId, Empty, TransactionCall},
+        web3,
+    };
+    use ethprim::address;
+    use hex_literal::hex;
+    use serde_json::json;
+
+    fn roundtrip(
+        call: Value,
+        result: Value,
+    ) -> impl FnOnce(String) -> Result<String, Box<dyn std::error::Error>> {
+        move |request| {
+            let request = serde_json::from_str::<Request<String>>(&request).unwrap();
+            assert_eq!(
+                call,
+                json!({
+                    "method": request.method,
+                    "params": request.params,
+                }),
+            );
+            let mut response = result;
+            {
+                let response = response.as_object_mut().unwrap();
+                response.insert("jsonrpc".to_string(), json!(request.jsonrpc));
+                response.insert("id".to_string(), json!(request.id));
+            }
+            Ok(response.to_string())
+        }
+    }
+
+    #[test]
+    fn calls() {
+        let version = call(
+            web3::ClientVersion,
+            Empty,
+            roundtrip(
+                json!({
+                    "method": "web3_clientVersion",
+                    "params": [],
+                }),
+                json!({
+                    "result": "geth",
+                }),
+            ),
+        )
+        .unwrap();
+        assert_eq!(version, "geth");
+
+        let output = call(
+            eth::Call,
+            (
+                TransactionCall {
+                    to: Some(address!("0x9008D19f58AAbD9eD0D60971565AA8510560ab41")),
+                    input: Some(hex!("f698da25").to_vec()),
+                    ..Default::default()
+                },
+                BlockId::default(),
+            ),
+            roundtrip(
+                json!({
+                    "method": "eth_call",
+                    "params": [
+                        {
+                            "to": "0x9008D19f58AAbD9eD0D60971565AA8510560ab41",
+                            "input": "0xf698da25",
+                        },
+                        "latest",
+                    ],
+                }),
+                json!({
+                    "result": "0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943",
+                }),
+            ),
+        )
+        .unwrap();
+        assert_eq!(
+            output,
+            hex!("c078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943")
+        );
     }
 }

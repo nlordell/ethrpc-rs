@@ -1,5 +1,7 @@
 //! A simple Ethereum RPC implementation.
 
+#[cfg(feature = "curl")]
+pub mod curl;
 #[cfg(feature = "http")]
 pub mod http;
 pub mod jsonrpc;

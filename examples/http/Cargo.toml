@@ -1,0 +1,9 @@
+[package]
+name = "ethrpc-examples-http"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ethrpc = { path = "../..", features = ["http"] }
+tokio = { version = "1", features = ["full"] }

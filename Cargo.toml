@@ -16,7 +16,6 @@ categories = ["cryptography::cryptocurrencies"]
 all-features = true
 
 [features]
-default = ["http"]
 curl = ["dep:curl"]
 http = ["dep:futures", "dep:reqwest", "dep:tokio", "dep:tokio-stream", "dep:tracing"]
 
@@ -37,3 +36,6 @@ tracing = { version = "0.1", optional = true }
 [dev-dependencies]
 ethprim = { version = "0.1", features = ["macros"] }
 hex-literal = "0.4"
+
+[workspace]
+members = ["examples/*"]

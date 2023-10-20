@@ -20,38 +20,6 @@ ethrpc::module! {
     }
 }
 
-fn main() {
-    println!("Hello, world!");
-}
-
-fn server(requests: mpsc::Receiver<String>, responses: mpsc::Sender<String>) {
-    while let Ok(request) = requests.recv() {
-        if let Ok(request) = serde_json::from_str::<jsonrpc::Request<custom::Time>>(&request) {
-            let _ = responses.send(
-                serde_json::to_string(&jsonrpc::Response::<custom::Time> {
-                    jsonrpc: request.jsonrpc,
-                    result: Ok(SystemTime::now()),
-                    id: Some(request.id),
-                })
-                .unwrap(),
-            );
-        } else if let Ok(request) = serde_json::from_str::<jsonrpc::Request<custom::Add>>(&request)
-        {
-            let (a, b) = request.params;
-            let sum = a.checked_add(b).
-            let _ = responses.send(
-                serde_json::to_string(&jsonrpc::Response::<custom::Add> {
-                    jsonrpc: request.jsonrpc,
-                    result: request.params.0.chc,
-                    id: Some(request.id),
-                })
-                .unwrap(),
-            );
-        } else {
-        };
-    }
-}
-
 /// Custom serialization logic for the custom RPC module.
 mod serialize_time {
     use serde::{de, ser, Deserializer, Serializer};
@@ -78,8 +46,63 @@ mod serialize_time {
     }
 }
 
-/*
-more concrete request/response types
-error creation helpers
-potnetially JSON RPC server helpers
-*/
+fn main() {
+    println!("Hello, world!");
+}
+
+fn server(requests: mpsc::Receiver<jsonrpc::Request>, responses: mpsc::Sender<jsonrpc::Response>) {
+    macro_rules! handle {
+        ($req:expr; $($t:expr => |$r:ident| $f:block)*) => {{
+            let req: jsonrpc::Request = $req;
+            match req.method.as_str() {
+                $(m if m == ethrpc::method::Method::name(&$t) => {
+                    let id = req.id;
+                    let $r = param_of($t, req.params);
+                    let result = { $f };
+                    jsonrpc::Response {
+                        jsonrpc: jsonrpc::Version::V2,
+                        id: Some(id),
+                        result: result.map(|value| result_of($t, value)),
+                    }
+                })*
+                method => jsonrpc::Response {
+                    jsonrpc: jsonrpc::Version::V2,
+                    id: Some(req.id),
+                    result: Err(jsonrpc::Error {
+                        code: jsonrpc::ErrorCode::MethodNotFound,
+                        message: format!("unknown method '{method}'"),
+                        data: jsonrpc::Value::default(),
+                    })
+                }
+            }
+        }}
+    }
+
+    while let Ok(request) = requests.recv() {
+        let _ = responses.send(handle! {
+            request;
+            custom::Time => |_params| {
+                Ok(SystemTime::now())
+            }
+            custom::Add => |params| {
+                let (a, b) = params;
+                a.checked_add(b)
+                    .ok_or_else(|| jsonrpc::Error::custom("overflow"))
+            }
+        });
+    }
+}
+
+fn param_of<M>(_: M, value: jsonrpc::Value) -> M::Params
+where
+    M: ethrpc::method::Method,
+{
+    value.params::<M>().unwrap()
+}
+
+fn result_of<M>(_: M, result: M::Result) -> jsonrpc::Value
+where
+    M: ethrpc::method::Method,
+{
+    jsonrpc::Value::for_result::<M>(result).unwrap()
+}

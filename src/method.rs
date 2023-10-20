@@ -9,7 +9,7 @@ pub trait Method {
     type Params;
     type Result;
 
-    fn name(&self) -> &str;
+    fn name(&self) -> Cow<'static, str>;
 
     fn deserialize_params<'de, D>(deserializer: D) -> Result<Self::Params, D::Error>
     where
@@ -32,8 +32,8 @@ macro_rules! impl_method_for_stringlike {
             type Params = Value;
             type Result = Value;
 
-            fn name(&self) -> &str {
-                self
+            fn name(&self) -> Cow<'static, str> {
+                Cow::Owned(self.to_string())
             }
 
             fn deserialize_params<'de, D>(deserializer: D) -> Result<Self::Params, D::Error>
@@ -129,8 +129,8 @@ macro_rules! method {
             type Params = $params;
             type Result = $result;
 
-            fn name(&self) -> &str {
-                $name
+            fn name(&self) -> ::std::borrow::Cow<'static, str> {
+                ::std::borrow::Cow::Borrowed($name)
             }
 
             fn deserialize_params<'de, D>(deserializer: D) -> Result<Self::Params, D::Error>

@@ -1,17 +1,17 @@
 //! Module containing serializable JSON RPC data types.
 
 pub mod batch;
+mod value;
 
-use crate::method::Method;
+pub use self::value::{JsonError, Value};
 use serde::{
     de::{self, Deserializer},
     Deserialize, Serialize, Serializer,
 };
-use serde_json::Value;
 use std::{
-    fmt::{self, Formatter},
+    borrow::Cow,
+    fmt::{self, Debug, Formatter},
     future::Future,
-    marker::PhantomData,
     sync::atomic::{self, AtomicU32},
 };
 use thiserror::Error;
@@ -19,19 +19,13 @@ use thiserror::Error;
 /// Executes a JSON RPC call with the provided roundtrip implementation.
 pub fn call<M, F, E>(method: M, params: M::Params, roundtrip: F) -> Result<M::Result, E>
 where
-    M: Method + Serialize,
-    F: FnOnce(String) -> Result<String, E>,
-    E: From<Error> + From<serde_json::Error>,
+    M: crate::method::Method + Serialize,
+    F: FnOnce(Request) -> Result<Response, E>,
+    E: From<Error> + From<JsonError>,
 {
-    let request = serde_json::to_string(&Request {
-        jsonrpc: Version::V2,
-        method,
-        params,
-        id: Id::next(),
-    })?;
-    let body = roundtrip(request)?;
-    let response = serde_json::from_str::<Response<M>>(&body)?;
-    Ok(response.result?)
+    let request = Request::new(method, params)?;
+    let response = roundtrip(request)?;
+    Ok(response.result::<M>()??)
 }
 
 /// Executes a JSON RPC call with the provided `async` roundtrip implementation.
@@ -41,20 +35,14 @@ pub async fn call_async<M, F, Fut, E>(
     roundtrip: F,
 ) -> Result<M::Result, E>
 where
-    M: Method + Serialize,
-    F: FnOnce(String) -> Fut,
-    Fut: Future<Output = Result<String, E>>,
-    E: From<Error> + From<serde_json::Error>,
+    M: crate::method::Method + Serialize,
+    F: FnOnce(Request) -> Fut,
+    Fut: Future<Output = Result<Response, E>>,
+    E: From<Error> + From<JsonError>,
 {
-    let request = serde_json::to_string(&Request {
-        jsonrpc: Version::V2,
-        method,
-        params,
-        id: Id::next(),
-    })?;
-    let body = roundtrip(request).await?;
-    let response = serde_json::from_str::<Response<M>>(&body)?;
-    Ok(response.result?)
+    let request = Request::new(method, params)?;
+    let response = roundtrip(request).await?;
+    Ok(response.result::<M>()??)
 }
 
 /// JSON RPC supported version.
@@ -82,52 +70,97 @@ impl Id {
     }
 }
 
+/// A JSON RPC method name.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct Method(pub Cow<'static, str>);
+
+impl Method {
+    /// Creates a new method name from a string.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(Cow::Owned(name.into()))
+    }
+
+    /// Creates a new method name from a static string reference.
+    pub fn from_static(name: &'static str) -> Self {
+        Self(Cow::Borrowed(name))
+    }
+
+    /// Returns the method as a string reference.
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 /// A request object.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Request<M>
-where
-    M: Method,
-{
+pub struct Request {
     pub jsonrpc: Version,
-    pub method: M,
-    #[serde(
-        deserialize_with = "M::deserialize_params",
-        serialize_with = "M::serialize_params"
-    )]
-    pub params: M::Params,
+    pub method: Method,
+    pub params: Value,
     pub id: Id,
+}
+
+impl Request {
+    /// Creates a new request for the specified method and paramters.
+    pub fn new<M>(method: M, params: M::Params) -> Result<Self, JsonError>
+    where
+        M: crate::method::Method,
+    {
+        Ok(Self {
+            jsonrpc: Version::V2,
+            method: Method(method.name()),
+            params: Value::new(params, M::serialize_params)?,
+            id: Id::next(),
+        })
+    }
 }
 
 /// Notification object.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Notification<M>
-where
-    M: Method,
-{
+pub struct Notification {
     pub jsonrpc: Version,
-    pub method: M,
-    #[serde(
-        deserialize_with = "M::deserialize_params",
-        serialize_with = "M::serialize_params"
-    )]
-    pub params: M::Params,
+    pub method: Method,
+    pub params: Value,
+}
+
+impl Notification {
+    /// Creates a new notification for the specified method and paramters.
+    pub fn new<M>(method: M, params: M::Params) -> Result<Self, JsonError>
+    where
+        M: crate::method::Method,
+    {
+        Ok(Self {
+            jsonrpc: Version::V2,
+            method: Method(method.name()),
+            params: Value::new(params, M::serialize_params)?,
+        })
+    }
 }
 
 /// Response object.
 #[derive(Debug)]
-pub struct Response<M>
-where
-    M: Method,
-{
+pub struct Response {
     pub jsonrpc: Version,
-    pub result: Result<M::Result, Error>,
+    pub result: Result<Value, Error>,
     pub id: Option<Id>,
 }
 
-impl<'de, M> Deserialize<'de> for Response<M>
-where
-    M: Method,
-{
+impl Response {
+    /// Extracts the response result for a method.
+    pub fn result<M>(self) -> Result<Result<M::Result, Error>, JsonError>
+    where
+        M: crate::method::Method,
+    {
+        // TODO(nlordell): Might be some standard library function for this.
+        match self.result {
+            Ok(value) => value.result::<M>().map(Ok),
+            Err(err) => Ok(Err(err)),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Response {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -141,13 +174,10 @@ where
             Id,
         }
 
-        struct Visitor<M>(PhantomData<M>);
+        struct Visitor;
 
-        impl<'de, M> de::Visitor<'de> for Visitor<M>
-        where
-            M: Method,
-        {
-            type Value = Response<M>;
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = Response;
 
             fn expecting(&self, f: &mut Formatter) -> fmt::Result {
                 f.write_str("JSON RPC response")
@@ -174,7 +204,7 @@ where
                             if result.is_some() {
                                 return Err(de::Error::duplicate_field("result"));
                             }
-                            result = Some(map.next_value::<MethodResult<M>>()?);
+                            result = Some(map.next_value()?);
                         }
                         Key::Error => {
                             if error.is_some() {
@@ -191,10 +221,16 @@ where
                     }
                 }
 
+                // Note that some RPC servers return **both** `result` and
+                // `error` fields in some conditions (such as auto-mine nodes
+                // returning both when mining a transaction that reverts). In
+                // these cases, the `result` is what is expected by the Ethereum
+                // RPC standard, so prefer it (even if it not strictly JSON RPC
+                // standard compatible).
                 Ok(Response {
                     jsonrpc: jsonrpc.ok_or_else(|| de::Error::missing_field("jsonrpc"))?,
                     result: match (result, error) {
-                        (Some(result), _) => Ok(result.0),
+                        (Some(result), _) => Ok(result),
                         (None, Some(error)) => Err(error),
                         (None, None) => {
                             return Err(de::Error::custom("missing 'result' or 'error' field"))
@@ -205,43 +241,20 @@ where
             }
         }
 
-        #[derive(Deserialize)]
-        #[serde(transparent)]
-        struct MethodResult<M>(#[serde(deserialize_with = "M::deserialize_result")] M::Result)
-        where
-            M: Method;
-
-        deserializer.deserialize_struct(
-            "Response",
-            &["jsonrpc", "result", "error", "id"],
-            Visitor::<M>(PhantomData),
-        )
+        deserializer.deserialize_struct("Response", &["jsonrpc", "result", "error", "id"], Visitor)
     }
 }
 
-impl<M> Serialize for Response<M>
-where
-    M: Method,
-{
+impl Serialize for Response {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         #[derive(Serialize)]
-        #[serde(transparent)]
-        struct MethodResult<'a, M>(#[serde(serialize_with = "M::serialize_result")] &'a M::Result)
-        where
-            M: Method;
-
-        #[derive(Serialize)]
-        #[serde(bound(serialize = "M: Method"))]
-        struct Response<'a, M>
-        where
-            M: Method,
-        {
+        struct Response<'a> {
             jsonrpc: Version,
             #[serde(skip_serializing_if = "Option::is_none")]
-            result: Option<MethodResult<'a, M>>,
+            result: Option<&'a Value>,
             #[serde(skip_serializing_if = "Option::is_none")]
             error: Option<&'a Error>,
             #[serde(skip_serializing_if = "Option::is_none")]
@@ -249,7 +262,7 @@ where
         }
 
         let (result, error) = match &self.result {
-            Ok(result) => (Some(MethodResult::<M>(result)), None),
+            Ok(result) => (Some(result), None),
             Err(error) => (None, Some(error)),
         };
         Response {
@@ -262,39 +275,6 @@ where
     }
 }
 
-mod response {
-    use super::{Error, Id, Version};
-    use crate::method::Method;
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Deserialize, Serialize)]
-    #[serde(transparent)]
-    pub struct Res<M>(
-        #[serde(
-            deserialize_with = "M::deserialize_result",
-            serialize_with = "M::serialize_result"
-        )]
-        pub M::Result,
-    )
-    where
-        M: Method;
-
-    #[derive(Deserialize, Serialize)]
-    #[serde(
-        bound(deserialize = "M: Method", serialize = "M: Method"),
-        deny_unknown_fields
-    )]
-    pub struct Raw<M>
-    where
-        M: Method,
-    {
-        pub jsonrpc: Version,
-        pub result: Option<Res<M>>,
-        pub error: Option<Error>,
-        pub id: Option<Id>,
-    }
-}
-
 /// An RPC error that may be produced on a response.
 #[derive(Clone, Debug, Deserialize, Error, Serialize)]
 #[error("{code}: {message}")]
@@ -304,6 +284,17 @@ pub struct Error {
     pub message: String,
     #[serde(default)]
     pub data: Value,
+}
+
+impl Error {
+    /// Creates an error with a custom error message.
+    pub fn custom(message: impl Into<String>) -> Self {
+        Self {
+            code: ErrorCode::from(-32000),
+            message: message.into(),
+            data: Value::default(),
+        }
+    }
 }
 
 /// An error code.
@@ -338,7 +329,7 @@ impl From<i32> for ErrorCode {
             -32602 => Self::InvalidParams,
             -32603 => Self::InternalError,
             -32099..=-32000 => Self::ServerError(code),
-            -32768..=-32000 => Self::Reserved(code),
+            -32768..=-32100 => Self::Reserved(code),
             _ => Self::Other(code),
         }
     }
@@ -372,11 +363,10 @@ mod tests {
     use serde_json::json;
 
     fn roundtrip(
-        call: Value,
-        result: Value,
-    ) -> impl FnOnce(String) -> Result<String, Box<dyn std::error::Error>> {
+        call: serde_json::Value,
+        result: serde_json::Value,
+    ) -> impl FnOnce(Request) -> Result<Response, Box<dyn std::error::Error>> {
         move |request| {
-            let request = serde_json::from_str::<Request<String>>(&request).unwrap();
             assert_eq!(
                 call,
                 json!({
@@ -384,13 +374,11 @@ mod tests {
                     "params": request.params,
                 }),
             );
-            let mut response = result;
-            {
-                let response = response.as_object_mut().unwrap();
-                response.insert("jsonrpc".to_string(), json!(request.jsonrpc));
-                response.insert("id".to_string(), json!(request.id));
-            }
-            Ok(response.to_string())
+            Ok(Response {
+                jsonrpc: Version::V2,
+                result: Ok(Value(result)),
+                id: Some(request.id),
+            })
         }
     }
 
@@ -404,9 +392,7 @@ mod tests {
                     "method": "web3_clientVersion",
                     "params": [],
                 }),
-                json!({
-                    "result": "geth",
-                }),
+                json!("geth"),
             ),
         )
         .unwrap();
@@ -433,9 +419,7 @@ mod tests {
                         "latest",
                     ],
                 }),
-                json!({
-                    "result": "0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943",
-                }),
+                json!("0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943"),
             ),
         )
         .unwrap();

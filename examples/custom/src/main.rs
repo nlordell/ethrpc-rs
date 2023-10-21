@@ -5,7 +5,7 @@
 //! 2. Custom RPC methods defined with the macro.
 
 use ethrpc::{jsonrpc, types::Empty};
-use std::{sync::mpsc, time::SystemTime};
+use std::time::SystemTime;
 
 ethrpc::module! {
     /// A custom namespace.
@@ -22,8 +22,8 @@ ethrpc::module! {
 
 /// Custom serialization logic for the custom RPC module.
 mod serialize_time {
-    use serde::{de, ser, Deserializer, Serializer};
-    use std::time::SystemTime;
+    use serde::{de, ser, Deserialize, Deserializer, Serializer};
+    use std::time::{Duration, SystemTime};
 
     pub fn serialize<S>(value: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -42,16 +42,74 @@ mod serialize_time {
     where
         D: Deserializer<'de>,
     {
-        todo!()
+        let timestamp = u64::deserialize(deserializer)?;
+        SystemTime::UNIX_EPOCH
+            .checked_add(Duration::from_secs(timestamp))
+            .ok_or_else(|| de::Error::custom("invalid timestamp"))
     }
 }
 
 fn main() {
-    println!("Hello, world!");
+    let server = server::start();
+
+    let now = jsonrpc::call(custom::Time, Empty, server.roundtrip()).unwrap();
+    println!("time: {now:?}");
+
+    let sum = jsonrpc::call(custom::Add, (1, 2), server.roundtrip()).unwrap();
+    println!("1 + 2 = {sum}");
+
+    let err = jsonrpc::call(custom::Add, (u64::MAX, 1), server.roundtrip()).unwrap_err();
+    println!("MAX + 1 = {err:?}");
+
+    server.stop();
 }
 
-fn server(requests: mpsc::Receiver<jsonrpc::Request>, responses: mpsc::Sender<jsonrpc::Response>) {
-    macro_rules! handle {
+mod server {
+    use super::custom;
+    use ethrpc::jsonrpc;
+    use std::{error::Error, sync::mpsc, thread, time::SystemTime};
+
+    pub fn start() -> Server {
+        let (requests, rx) = mpsc::channel();
+        let (tx, responses) = mpsc::channel();
+        let handler = thread::spawn(move || handler(rx, tx));
+
+        Server {
+            requests,
+            responses,
+            handler,
+        }
+    }
+
+    pub struct Server {
+        requests: mpsc::Sender<jsonrpc::Request>,
+        responses: mpsc::Receiver<jsonrpc::Response>,
+        handler: thread::JoinHandle<()>,
+    }
+
+    impl Server {
+        pub fn roundtrip(
+            &self,
+        ) -> impl FnOnce(jsonrpc::Request) -> Result<jsonrpc::Response, Box<dyn Error>> + '_
+        {
+            move |request| Ok(self.execute(request))
+        }
+
+        pub fn execute(&self, request: jsonrpc::Request) -> jsonrpc::Response {
+            self.requests.send(request).unwrap();
+            self.responses.recv().unwrap()
+        }
+
+        pub fn stop(self) {
+            let Self {
+                requests, handler, ..
+            } = self;
+            drop(requests);
+            handler.join().unwrap();
+        }
+    }
+
+    macro_rules! router {
         ($req:expr; $($t:expr => |$r:ident| $f:block)*) => {{
             let req: jsonrpc::Request = $req;
             match req.method.as_str() {
@@ -78,31 +136,36 @@ fn server(requests: mpsc::Receiver<jsonrpc::Request>, responses: mpsc::Sender<js
         }}
     }
 
-    while let Ok(request) = requests.recv() {
-        let _ = responses.send(handle! {
-            request;
-            custom::Time => |_params| {
-                Ok(SystemTime::now())
-            }
-            custom::Add => |params| {
-                let (a, b) = params;
-                a.checked_add(b)
-                    .ok_or_else(|| jsonrpc::Error::custom("overflow"))
-            }
-        });
+    fn handler(
+        requests: mpsc::Receiver<jsonrpc::Request>,
+        responses: mpsc::Sender<jsonrpc::Response>,
+    ) {
+        while let Ok(request) = requests.recv() {
+            let _ = responses.send(router! {
+                request;
+                custom::Time => |_params| {
+                    Ok(SystemTime::now())
+                }
+                custom::Add => |params| {
+                    let (a, b) = params;
+                    a.checked_add(b)
+                        .ok_or_else(|| jsonrpc::Error::custom("overflow"))
+                }
+            });
+        }
     }
-}
 
-fn param_of<M>(_: M, value: jsonrpc::Value) -> M::Params
-where
-    M: ethrpc::method::Method,
-{
-    value.params::<M>().unwrap()
-}
+    fn param_of<M>(_: M, value: jsonrpc::Value) -> M::Params
+    where
+        M: ethrpc::method::Method,
+    {
+        value.params::<M>().unwrap()
+    }
 
-fn result_of<M>(_: M, result: M::Result) -> jsonrpc::Value
-where
-    M: ethrpc::method::Method,
-{
-    jsonrpc::Value::for_result::<M>(result).unwrap()
+    fn result_of<M>(_: M, result: M::Result) -> jsonrpc::Value
+    where
+        M: ethrpc::method::Method,
+    {
+        jsonrpc::Value::for_result::<M>(result).unwrap()
+    }
 }

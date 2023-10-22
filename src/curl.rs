@@ -4,18 +4,18 @@ use crate::{
     jsonrpc::{
         self,
         batch::{self, Batch},
+        JsonError,
     },
     method::Method,
     types::Empty,
 };
 pub use curl;
 use curl::easy::{Easy, List};
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use std::{
     cell::RefCell,
     env,
     io::{Read, Write},
-    string::FromUtf8Error,
 };
 use thiserror::Error;
 
@@ -30,11 +30,6 @@ impl Client {
     pub fn new(url: impl AsRef<str>) -> Result<Self, Error> {
         let mut handle = Easy::new();
         handle.url(url.as_ref())?;
-        handle.http_headers({
-            let mut list = List::new();
-            list.append("Content-Type: application/json")?;
-            list
-        })?;
         Ok(Self::with_handle(handle))
     }
 
@@ -59,13 +54,27 @@ impl Client {
         Self::new(env::var("ETHRPC").expect("missing ETHRPC environment variable")).unwrap()
     }
 
-    fn roundtrip(&self, request: String) -> Result<String, Error> {
+    fn roundtrip<T, R>(&self, request: T) -> Result<R, Error>
+    where
+        T: Serialize,
+        R: DeserializeOwned,
+    {
+        let request = serde_json::to_vec(&request)?;
+
         let mut handle = self
             .handle
             .try_borrow_mut()
             .expect("unexpected sharing of curl handle");
 
-        let mut request = request.as_bytes();
+        handle.post(true)?;
+        handle.http_headers({
+            let mut list = List::new();
+            list.append("Content-Type: application/json")?;
+            list.append(&format!("Content-Length: {}", request.len()))?;
+            list
+        })?;
+
+        let mut request = request.as_slice();
         let mut response = Vec::new();
         {
             let mut transfer = handle.transfer();
@@ -75,11 +84,14 @@ impl Client {
         }
 
         let status = handle.response_code()?;
-        let response = String::from_utf8(response)?;
         if !(200..300).contains(&status) {
-            return Err(Error::Status(status, response));
+            return Err(Error::Status(
+                status,
+                String::from_utf8_lossy(&response).into_owned(),
+            ));
         }
 
+        let response = serde_json::from_slice(&response)?;
         Ok(response)
     }
 
@@ -122,15 +134,19 @@ impl Client {
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+    Json(#[from] JsonError),
     #[error("HTTP error: {0}")]
     Http(#[from] curl::Error),
-    #[error("UTF-8 error: {0}")]
-    Utf8(#[from] FromUtf8Error),
     #[error("HTTP {0} error: {1}")]
     Status(u32, String),
     #[error(transparent)]
     Rpc(#[from] jsonrpc::Error),
     #[error(transparent)]
     Batch(#[from] batch::Error),
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Self {
+        Self::Json(err.into())
+    }
 }

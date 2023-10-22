@@ -14,8 +14,7 @@ use futures::{
     stream::StreamExt as _,
 };
 use serde::Serialize;
-use serde_json::Value;
-use std::{fmt::Write, num::NonZeroUsize, sync::Arc, time::Duration};
+use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 use tokio_stream::StreamExt as _;
 
 /// A buffered JSON RPC HTTP client.
@@ -25,8 +24,8 @@ pub struct Buffered {
 }
 
 struct Call {
-    request: String,
-    response: oneshot::Sender<Result<String, Error>>,
+    request: jsonrpc::Request,
+    response: oneshot::Sender<Result<jsonrpc::Response, Error>>,
 }
 
 impl Client {
@@ -72,12 +71,21 @@ impl Buffered {
                                 let _ = call.response.send(response);
                             }
                             n => {
-                                let requests = join_requests(&chunk);
-                                let responses = client.roundtrip(requests).await;
-                                for (call, response) in
-                                    chunk.into_iter().zip(split_responses(n, responses))
-                                {
-                                    let _ = call.response.send(response);
+                                let (requests, channels): (Vec<_>, Vec<_>) = chunk
+                                    .into_iter()
+                                    .map(|call| (call.request, call.response))
+                                    .unzip();
+                                let responses = client
+                                    .roundtrip::<_, Vec<jsonrpc::Response>>(requests)
+                                    .await
+                                    .map(|responses| {
+                                        responses.into_iter().map(Ok).collect::<Vec<_>>()
+                                    })
+                                    .unwrap_or_else(|_| {
+                                        (0..n).map(|_| Err(Error::Batch(batch::Error))).collect()
+                                    });
+                                for (channel, response) in channels.into_iter().zip(responses) {
+                                    let _ = channel.send(response);
                                 }
                             }
                         }
@@ -87,7 +95,7 @@ impl Buffered {
             .await;
     }
 
-    async fn roundtrip(&self, request: String) -> Result<String, Error> {
+    async fn roundtrip(&self, request: jsonrpc::Request) -> Result<jsonrpc::Response, Error> {
         async {
             let (sender, receiver) = oneshot::channel();
             self.calls
@@ -110,8 +118,8 @@ impl Buffered {
         jsonrpc::call_async(method, params, |request| self.roundtrip(request)).await
     }
 
-    /// Executes a JSON RPC call with empty parameters.
-    pub async fn exec<M>(&self, method: M) -> Result<M::Result, Error>
+    /// Executes a JSON RPC call with no parameters.
+    pub async fn call_np<M>(&self, method: M) -> Result<M::Result, Error>
     where
         M: Method<Params = Empty> + Serialize,
     {
@@ -140,39 +148,5 @@ impl Default for Configuration {
             max_size: 20,
             delay: Duration::default(),
         }
-    }
-}
-
-// TODO(nlordell): We can optimize this a bit:
-// 1. First of all, we can use the `reqwest::Body::wrap_stream` to send chunks
-//    potentially as requests come in, and without allocating a string buffer
-//    to hold all of the requests.
-// 2. We can split the responses without parsing them into JSON values and then
-//    re-serializing each array item into a string to save on allocations.
-
-fn join_requests(calls: &[Call]) -> String {
-    let total = calls.iter().map(|call| call.request.len() + 2).sum();
-    let mut buffer = String::with_capacity(total);
-    let mut calls = calls.iter();
-
-    let _ = write!(buffer, "[");
-    if let Some(Call { request, .. }) = calls.next() {
-        let _ = write!(buffer, "{request}");
-    }
-    for Call { request, .. } in calls {
-        let _ = write!(buffer, ",{request}");
-    }
-    let _ = write!(buffer, "]");
-
-    buffer
-}
-
-fn split_responses(n: usize, responses: Result<String, Error>) -> Vec<Result<String, Error>> {
-    match responses.and_then(|r| Ok(serde_json::from_str::<Vec<Value>>(&r)?)) {
-        Ok(responses) => responses
-            .into_iter()
-            .map(|response| Ok(response.to_string()))
-            .collect(),
-        Err(_) => (0..n).map(|_| Err(Error::Batch(batch::Error))).collect(),
     }
 }

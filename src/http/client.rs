@@ -4,12 +4,13 @@ use crate::{
     jsonrpc::{
         self,
         batch::{self, Batch},
+        JsonError,
     },
     method::Method,
     types::Empty,
 };
 use reqwest::{StatusCode, Url};
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use std::env;
 use thiserror::Error;
 
@@ -48,24 +49,24 @@ impl Client {
         )
     }
 
-    pub(super) async fn roundtrip(&self, request: String) -> Result<String, Error> {
-        tracing::trace!(%request);
+    pub(super) async fn roundtrip<T, R>(&self, request: T) -> Result<R, Error>
+    where
+        T: Serialize,
+        R: DeserializeOwned,
+    {
         let response = self
             .client
             .post(self.url.clone())
-            .header("content-type", "application/json")
-            .body(request)
+            .json(&request)
             .send()
             .await?;
 
         let status = response.status();
-        let body = response.text().await?;
-
-        tracing::trace!(%status, %body);
         if !status.is_success() {
-            return Err(Error::Status(status, body));
+            return Err(Error::Status(status, response.text().await?));
         }
 
+        let body = response.json().await?;
         Ok(body)
     }
 
@@ -77,8 +78,8 @@ impl Client {
         jsonrpc::call_async(method, params, |request| self.roundtrip(request)).await
     }
 
-    /// Executes a JSON RPC call with empty parameters.
-    pub async fn exec<M>(&self, method: M) -> Result<M::Result, Error>
+    /// Executes a JSON RPC call with no parameters.
+    pub async fn call_np<M>(&self, method: M) -> Result<M::Result, Error>
     where
         M: Method<Params = Empty> + Serialize,
     {
@@ -108,7 +109,7 @@ impl Client {
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+    Json(#[from] JsonError),
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
     #[error("HTTP {0} error: {1}")]

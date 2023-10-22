@@ -1,7 +1,7 @@
 use ethrpc::{eth, types::*};
 
 fn main() {
-    let client = ethrpc::curl::Client::new("http://localhost:8545").unwrap();
+    let client = ethrpc::curl::Client::from_env();
     let (block_number, block) = client
         .batch((
             (eth::BlockNumber, Empty),

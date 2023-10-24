@@ -11,7 +11,7 @@ use crate::{
 };
 use reqwest::{StatusCode, Url};
 use serde::{de::DeserializeOwned, Serialize};
-use std::env;
+use std::{env, sync::Arc};
 use thiserror::Error;
 
 /// An Ethereum JSON RPC HTTP client.
@@ -109,13 +109,41 @@ impl Client {
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("JSON error: {0}")]
-    Json(#[from] JsonError),
+    Json(#[from] Arc<JsonError>),
     #[error("HTTP error: {0}")]
-    Http(#[from] reqwest::Error),
+    Http(#[from] Arc<reqwest::Error>),
     #[error("HTTP {0} error: {1}")]
     Status(StatusCode, String),
     #[error(transparent)]
     Rpc(#[from] jsonrpc::Error),
     #[error(transparent)]
     Batch(#[from] batch::Error),
+}
+
+impl Error {
+    /// Duplicate an error.
+    ///
+    /// This has the exact same semantics as `Clone`, but we don't want to
+    /// expose that since the implementation is messy to say the least.
+    pub(super) fn duplicate(&self) -> Self {
+        match self {
+            Self::Json(err) => Self::Json(err.clone()),
+            Self::Http(err) => Self::Http(err.clone()),
+            Self::Status(code, body) => Self::Status(*code, body.clone()),
+            Self::Rpc(err) => Self::Rpc(err.clone()),
+            Self::Batch(batch::Error) => Self::Batch(batch::Error),
+        }
+    }
+}
+
+impl From<JsonError> for Error {
+    fn from(err: JsonError) -> Self {
+        Self::from(Arc::new(err))
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Self::from(Arc::new(err))
+    }
 }

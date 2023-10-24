@@ -4,11 +4,7 @@
 //! single JSON RPC batch call.
 
 use super::client::{Client, Error};
-use crate::{
-    jsonrpc::{self, batch},
-    method::Method,
-    types::Empty,
-};
+use crate::{jsonrpc, method::Method, types::Empty};
 use futures::{
     channel::{mpsc, oneshot},
     stream::StreamExt as _,
@@ -81,8 +77,8 @@ impl Buffered {
                                     .map(|responses| {
                                         responses.into_iter().map(Ok).collect::<Vec<_>>()
                                     })
-                                    .unwrap_or_else(|_| {
-                                        (0..n).map(|_| Err(Error::Batch(batch::Error))).collect()
+                                    .unwrap_or_else(|err| {
+                                        (0..n).map(|_| Err(err.duplicate())).collect()
                                     });
                                 for (channel, response) in channels.into_iter().zip(responses) {
                                     let _ = channel.send(response);

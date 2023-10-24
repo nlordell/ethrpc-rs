@@ -240,6 +240,9 @@ pub enum SignedTransaction {
     /// Signed ERC-1559 transaction.
     #[serde(rename = "0x2")]
     Erc1559(SignedErc1559Transaction),
+    /// Signed EIP-4844 transaction.
+    #[serde(rename = "0x3")]
+    Eip4844(SignedEip4844Transaction),
 }
 
 /// The signature parity.
@@ -393,6 +396,65 @@ impl Debug for SignedErc1559Transaction {
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
             .field("access_list", &self.access_list)
+            .field("chain_id", &self.chain_id)
+            .field("y_parity", &self.y_parity)
+            .field("r", &self.r)
+            .field("s", &self.s)
+            .finish()
+    }
+}
+
+/// Signed EIP-4844 transaction.
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SignedEip4844Transaction {
+    /// The transaction nonce.
+    pub nonce: U256,
+    /// The transaction recipient.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to: Option<Address>,
+    /// The limit in gas units for the transaction.
+    pub gas: U256,
+    /// The Ether value associated with the transaction.
+    pub value: U256,
+    /// The calldata associated with the transaction.
+    #[serde(with = "serialization::bytes")]
+    pub input: Vec<u8>,
+    /// Maximum fee per gas the sender is willing to pay to miners in wei
+    pub max_priority_fee_per_gas: U256,
+    /// The maximum total fee per gas the sender is willing to pay, including
+    /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
+    pub max_fee_per_gas: U256,
+    /// The maximum total fee per gas the sender is willing to pay for blob gas in wei.
+    pub max_fee_per_blob_gas: U256,
+    /// State access list.
+    pub access_list: AccessList,
+    /// List of versioned blob hashes associated with the transaction's EIP-4844 data blobs.
+    pub blob_versioned_hashes: Vec<Digest>,
+    /// Chain ID that the transaction is valid on.
+    pub chain_id: U256,
+    /// Y parity of the signature.
+    #[serde(alias = "v")]
+    pub y_parity: YParity,
+    /// R
+    pub r: U256,
+    /// S
+    pub s: U256,
+}
+
+impl Debug for SignedEip4844Transaction {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("SignedEip4844Transaction")
+            .field("nonce", &self.nonce)
+            .field("to", &self.to)
+            .field("gas", &self.gas)
+            .field("value", &self.value)
+            .field("input", &debug::Hex(&self.input))
+            .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
+            .field("max_fee_per_gas", &self.max_fee_per_gas)
+            .field("max_fee_per_blob_gas", &self.max_fee_per_blob_gas)
+            .field("access_list", &self.access_list)
+            .field("blob_versioned_hashes", &self.blob_versioned_hashes)
             .field("chain_id", &self.chain_id)
             .field("y_parity", &self.y_parity)
             .field("r", &self.r)

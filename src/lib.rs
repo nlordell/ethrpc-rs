@@ -67,7 +67,7 @@ module! {
 
         /// Returns information about a transaction by block number and transaction index position.
         pub struct GetTransactionByBlockNumberAndIndex as "eth_getTransactionByBlockNumberAndIndex"
-            (BlockId, U256) => Option<SignedTransaction>;
+            (BlockSpec, U256) => Option<SignedTransaction>;
 
         /// Returns information about a transaction requested by transaction hash.
         pub struct GetTransactionByHash as "eth_getTransactionByHash"

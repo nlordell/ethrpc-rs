@@ -965,6 +965,7 @@ pub struct TransactionReceipt {
     /// Contract address created, or `None` if not a deployment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contract_address: Option<Address>,
+    /// Logs emitted by the transaction.
     pub logs: Vec<Log>,
     /// The log bloom filter.
     pub logs_bloom: Bloom,

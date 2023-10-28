@@ -49,6 +49,10 @@ module! {
         pub struct GetBlockTransactionCountByHash as "eth_getBlockTransactionCountByHash"
             (Digest,) => Option<U256>;
 
+        /// Returns the receipts of a block by number or hash.
+        pub struct GetBlockReceipts as "eth_getBlockReceipts"
+            (BlockNumberOrHash,) => Option<Vec<TransactionReceipt>>;
+
         /// Returns the number of transactions in a block matching the given block number.
         pub struct GetBlockTransactionCountByNumber as "eth_getBlockTransactionCountByNumber"
             (BlockSpec,) => Option<U256>;

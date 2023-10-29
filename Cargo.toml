@@ -1,6 +1,6 @@
 [package]
 name = "ethrpc"
-version = "0.0.7"
+version = "0.0.8"
 authors = ["Nicholas Rodrigues Lordello <n@lordello.net>"]
 edition = "2021"
 description = "Ethereum transport-agnositic JSON RPC implementation"
@@ -21,7 +21,7 @@ http = ["dep:futures", "dep:reqwest", "dep:tokio", "dep:tokio-stream"]
 
 [dependencies]
 arrayvec = { version = "0.7", features = ["serde"] }
-ethprim = { version = "0.1", features = ["serde"] }
+ethprim = { version = "0.3", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
@@ -33,7 +33,6 @@ tokio = { version = "1", optional = true }
 tokio-stream = { version = "0.1", optional = true }
 
 [dev-dependencies]
-ethprim = { version = "0.1", features = ["macros"] }
 hex-literal = "0.4"
 
 [workspace]

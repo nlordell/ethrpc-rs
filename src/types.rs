@@ -926,9 +926,8 @@ impl Debug for Log {
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionReceipt {
-    #[serde(rename = "type", flatten)]
+    #[serde(rename = "type")]
     pub kind: TransactionReceiptKind,
-
     /// The hash of the transaction that emitted this log.
     pub transaction_hash: Digest,
     /// The index of the transaction that emitted this log within the block.
@@ -942,6 +941,10 @@ pub struct TransactionReceipt {
     /// Transaction receipient (Null for contract creation).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The price paid post-execution by the transaction (i.e. base fee + priority fee).
+    /// Both fields in 1559-style transactions are *maximums* (max fee + max priority fee), the
+    /// amount that's actually paid by users can only be determined post-execution.
+    effective_gas_price: U256,
     /// The sum of gas used by this transaction and all preceding transactions in the same block.
     pub cumulative_gas_used: U256,
     /// The amount of gas used for this specific transaction alone.
@@ -968,12 +971,7 @@ pub enum TransactionReceiptKind {
     #[serde(rename = "0x1")]
     Eip2930,
     #[serde(rename = "0x2")]
-    Eip1559 {
-        /// The price paid post-execution by the transaction (i.e. base fee + priority fee).
-        /// Both fields in 1559-style transactions are *maximums* (max fee + max priority fee), the
-        /// amount that's actually paid by users can only be determined post-execution.
-        effective_gas_price: Option<U256>,
-    },
+    Eip1559,
     #[serde(rename = "0x3")]
     Eip4844 {
         /// The amount of blob gas used for this specific transaction.
@@ -988,7 +986,7 @@ pub enum TransactionReceiptKind {
 impl Debug for TransactionReceipt {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_struct("Log")
-            .field("transaction_type", &self.kind)
+            .field("kind", &self.kind)
             .field("transaction_hash", &self.transaction_hash)
             .field("transaction_index", &self.transaction_index)
             .field("block_hash", &self.block_hash)

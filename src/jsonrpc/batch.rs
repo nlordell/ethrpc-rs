@@ -227,7 +227,7 @@ mod tests {
     use super::*;
     use crate::{
         eth,
-        types::{BlockId, BlockTag, Empty, Hydrated},
+        types::{BlockSpec, BlockTag, Empty, Hydrated, TransactionReceiptKind},
     };
     use ethprim::U256;
     use serde_json::json;
@@ -264,11 +264,11 @@ mod tests {
 
     #[test]
     fn batch_request() {
-        let (latest, safe, other) = call(
+        let (latest, safe, receipts) = call(
             (
                 (eth::BlockNumber, Empty),
                 (eth::GetBlockByNumber, (BlockTag::Safe.into(), Hydrated::No)),
-                (eth::GetBlockReceipts, (BlockId::Number(U256::new(18_460_382)), )),
+                (eth::GetBlockReceipts, (BlockSpec::Number(U256::new(18_460_382)), )),
             ),
             roundtrip(
                 json!([
@@ -548,8 +548,7 @@ mod tests {
             ),
         )
         .unwrap();
-        println!("{:?}", other);
-        assert!(other.is_none());
+        assert_eq!(receipts.unwrap()[0].kind, TransactionReceiptKind::Eip1559);
         assert_eq!(latest, 0x1163fd1);
         assert_eq!(safe.unwrap().number, 0x1163fa3);
     }

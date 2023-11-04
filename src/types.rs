@@ -72,15 +72,6 @@ impl From<BlockTag> for BlockSpec {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum BlockNumberOrHash {
-    /// Block by number.
-    Number(U256),
-    /// Block by hash.
-    Hash(Digest),
-}
-
 /// An Ethereum block id.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -932,16 +923,12 @@ impl Debug for Log {
 }
 
 /// An Ethereum Transaction Receipt
-#[derive(Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionReceipt {
-    /// Transaction type,
-    ///     - Some(3) for EIP-4844 transaction,
-    ///     - Some(2) for EIP-1559 transaction,
-    ///     - Some(1) for AccessList transaction,
-    ///     - None for Legacy
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub transaction_type: Option<U256>,
+    #[serde(rename = "type", flatten)]
+    pub kind: TransactionReceiptKind,
+
     /// The hash of the transaction that emitted this log.
     pub transaction_hash: Digest,
     /// The index of the transaction that emitted this log within the block.
@@ -959,9 +946,6 @@ pub struct TransactionReceipt {
     pub cumulative_gas_used: U256,
     /// The amount of gas used for this specific transaction alone.
     pub gas_used: U256,
-    /// The amount of blob gas used for this specific transaction.
-    /// Only specified for blob transactions as defined by EIP-4844.
-    pub blob_gas_used: U256,
     /// Contract address created, or `None` if not a deployment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contract_address: Option<Address>,
@@ -974,21 +958,37 @@ pub struct TransactionReceipt {
     pub root: Option<Digest>,
     /// Status: either 1 (success) or 0 (failure). Only present after activation of [EIP-658](https://eips.ethereum.org/EIPS/eip-658).
     pub status: Option<U256>,
-    /// The price paid post-execution by the transaction (i.e. base fee + priority fee).
-    /// Both fields in 1559-style transactions are *maximums* (max fee + max priority fee), the
-    /// amount that's actually paid by users can only be determined post-execution.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub effective_gas_price: Option<U256>,
-    /// The actual value per gas deducted from the sender's account for blob gas.
-    /// Only specified for blob transactions as defined by [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub blob_gas_price: Option<U256>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TransactionReceiptKind {
+    #[serde(rename = "0x0")]
+    Legacy,
+    #[serde(rename = "0x1")]
+    Eip2930,
+    #[serde(rename = "0x2")]
+    Eip1559 {
+        /// The price paid post-execution by the transaction (i.e. base fee + priority fee).
+        /// Both fields in 1559-style transactions are *maximums* (max fee + max priority fee), the
+        /// amount that's actually paid by users can only be determined post-execution.
+        effective_gas_price: Option<U256>,
+    },
+    #[serde(rename = "0x3")]
+    Eip4844 {
+        /// The amount of blob gas used for this specific transaction.
+        /// Only specified for blob transactions as defined by EIP-4844.
+        blob_gas_used: U256,
+        /// The actual value per gas deducted from the sender's account for blob gas.
+        /// Only specified for blob transactions as defined by [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844).
+        blob_gas_price: U256,
+    },
 }
 
 impl Debug for TransactionReceipt {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_struct("Log")
-            .field("transaction_type", &self.transaction_type)
+            .field("transaction_type", &self.kind)
             .field("transaction_hash", &self.transaction_hash)
             .field("transaction_index", &self.transaction_index)
             .field("block_hash", &self.block_hash)
@@ -997,14 +997,11 @@ impl Debug for TransactionReceipt {
             .field("to", &self.to)
             .field("cumulative_gas_used", &self.cumulative_gas_used)
             .field("gas_used", &self.gas_used)
-            .field("blob_gas_used", &self.blob_gas_used)
             .field("contract_address", &self.contract_address)
             .field("logs", &self.logs)
             .field("logs_bloom", &self.logs_bloom)
             .field("root", &self.root)
             .field("status", &self.status)
-            .field("effective_gas_price", &self.effective_gas_price)
-            .field("blob_gas_price", &self.blob_gas_price)
             .finish()
     }
 }

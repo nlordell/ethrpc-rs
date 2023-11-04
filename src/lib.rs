@@ -51,7 +51,7 @@ module! {
 
         /// Returns the receipts of a block by number or hash.
         pub struct GetBlockReceipts as "eth_getBlockReceipts"
-            (BlockId,) => Option<Vec<TransactionReceipt>>;
+            (BlockSpec,) => Option<Vec<TransactionReceipt>>;
 
         /// Returns the number of transactions in a block matching the given block number.
         pub struct GetBlockTransactionCountByNumber as "eth_getBlockTransactionCountByNumber"

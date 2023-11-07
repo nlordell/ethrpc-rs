@@ -539,7 +539,9 @@ mod tests {
                             "to": "0x49048044d57e1c92a77f79988d21fa8faf74e97e",
                             "transactionHash": "0xdf3aa03889d1de2f198f31ccaeeb83019c2f9140cad911011a9d4d2849157393",
                             "transactionIndex": "0x0",
-                            "type": "0x2"
+                            "type": "0x3",
+                            "blobGasUsed": "0x123",
+                            "blobGasPrice": "0x12345"
                         }
                     ]
                     ]"#,

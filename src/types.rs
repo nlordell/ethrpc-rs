@@ -1011,6 +1011,7 @@ impl Debug for TransactionReceipt {
             .field("block_number", &self.block_number)
             .field("from", &self.from)
             .field("to", &self.to)
+            .field("effective_gas_price", &self.effective_gas_price)
             .field("cumulative_gas_used", &self.cumulative_gas_used)
             .field("gas_used", &self.gas_used)
             .field("contract_address", &self.contract_address)

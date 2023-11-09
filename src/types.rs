@@ -926,7 +926,7 @@ impl Debug for Log {
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionReceipt {
-    #[serde(rename = "type")]
+    #[serde(flatten)]
     pub kind: TransactionReceiptKind,
     /// The hash of the transaction that emitted this log.
     pub transaction_hash: Digest,
@@ -964,7 +964,7 @@ pub struct TransactionReceipt {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(tag = "type")]
 pub enum TransactionReceiptKind {
     #[serde(rename = "0x0")]
     Legacy,
@@ -976,9 +976,11 @@ pub enum TransactionReceiptKind {
     Eip4844 {
         /// The amount of blob gas used for this specific transaction.
         /// Only specified for blob transactions as defined by EIP-4844.
+        #[serde(rename = "blobGasUsed")]
         blob_gas_used: U256,
         /// The actual value per gas deducted from the sender's account for blob gas.
         /// Only specified for blob transactions as defined by [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844).
+        #[serde(rename = "blobGasPrice")]
         blob_gas_price: U256,
     },
 }

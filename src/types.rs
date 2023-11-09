@@ -944,7 +944,7 @@ pub struct TransactionReceipt {
     /// The price paid post-execution by the transaction (i.e. base fee + priority fee).
     /// Both fields in 1559-style transactions are *maximums* (max fee + max priority fee), the
     /// amount that's actually paid by users can only be determined post-execution.
-    effective_gas_price: U256,
+    pub effective_gas_price: U256,
     /// The sum of gas used by this transaction and all preceding transactions in the same block.
     pub cumulative_gas_used: U256,
     /// The amount of gas used for this specific transaction alone.

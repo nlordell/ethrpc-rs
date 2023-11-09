@@ -959,15 +959,17 @@ pub struct TransactionReceipt {
     /// The log bloom filter.
     pub logs_bloom: Bloom,
     /// The transaction status, indicating whether it succeeded or reverted.
+    #[serde(flatten)]
     pub status: TransactionReceiptStatus,
 }
 
-/// Status: either 1 (success) or 0 (failure).
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(tag = "status")]
 pub enum TransactionReceiptStatus {
+    /// Status of a failed transaction.
     #[serde(rename = "0x0")]
     Failure,
+    /// Status of a successful transaction.
     #[serde(rename = "0x1")]
     Success,
 }
@@ -978,16 +980,16 @@ pub enum TransactionReceiptKind {
     /// - Legacy: The original transaction type
     #[serde(rename = "0x0")]
     Legacy,
-    /// - EIP2930: Optional access lists
-    /// https://eips.ethereum.org/EIPS/eip-2930
+    /// - EIP-2930: Optional access lists
+    ///   https://eips.ethereum.org/EIPS/eip-2930
     #[serde(rename = "0x1")]
     Eip2930,
-    /// EIP1559: Fee market change for ETH 1.0 chain
-    /// - https://eips.ethereum.org/EIPS/eip-1559
+    /// EIP-1559: Fee market change for ETH 1.0 chain
+    ///   https://eips.ethereum.org/EIPS/eip-1559
     #[serde(rename = "0x2")]
     Eip1559,
-    /// EIP4844: Shard Blob Transactions
-    /// - https://eips.ethereum.org/EIPS/eip-4844
+    /// EIP-4844: Shard Blob Transactions
+    ///   https://eips.ethereum.org/EIPS/eip-4844
     #[serde(rename = "0x3")]
     Eip4844 {
         /// The amount of blob gas used for this specific transaction.

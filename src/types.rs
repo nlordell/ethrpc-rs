@@ -958,7 +958,7 @@ pub struct TransactionReceipt {
     pub logs: Vec<Log>,
     /// The log bloom filter.
     pub logs_bloom: Bloom,
-    #[serde(flatten)]
+    /// The transaction status, indicating whether it succeeded or reverted.
     pub status: TransactionReceiptStatus,
 }
 

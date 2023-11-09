@@ -553,8 +553,8 @@ mod tests {
         assert_eq!(
             receipts.unwrap()[0].kind,
             TransactionReceiptKind::Eip4844 {
-                blob_gas_used: U256::from(291u64),
-                blob_gas_price: U256::from(74565u64)
+                blob_gas_used: U256::new(291),
+                blob_gas_price: U256::new(74_565)
             }
         );
         assert_eq!(latest, 0x1163fd1);

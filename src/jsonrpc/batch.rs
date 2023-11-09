@@ -227,9 +227,8 @@ mod tests {
     use super::*;
     use crate::{
         eth,
-        types::{BlockSpec, BlockTag, Empty, Hydrated, TransactionReceiptKind},
+        types::{BlockSpec, BlockTag, Empty, Hydrated, TransactionReceiptKind, U256},
     };
-    use ethprim::U256;
     use serde_json::json;
 
     fn roundtrip(

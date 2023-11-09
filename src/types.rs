@@ -926,6 +926,8 @@ impl Debug for Log {
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionReceipt {
+    /// The type of the transaction. These have evolved over several EIPs;
+    /// See `TransactionReceiptKind` for summaries and references.
     #[serde(flatten)]
     pub kind: TransactionReceiptKind,
     /// The hash of the transaction that emitted this log.
@@ -938,7 +940,7 @@ pub struct TransactionReceipt {
     pub block_number: U256,
     /// Address of transaction sender.
     pub from: Address,
-    /// Transaction receipient (Null for contract creation).
+    /// Transaction receipient ([`None`] for contract creation).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
     /// The price paid post-execution by the transaction (i.e. base fee + priority fee).
@@ -956,22 +958,36 @@ pub struct TransactionReceipt {
     pub logs: Vec<Log>,
     /// The log bloom filter.
     pub logs_bloom: Bloom,
-    /// State root. Only present before activation of [EIP-658](https://eips.ethereum.org/EIPS/eip-658).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub root: Option<Digest>,
-    /// Status: either 1 (success) or 0 (failure). Only present after activation of [EIP-658](https://eips.ethereum.org/EIPS/eip-658).
-    pub status: Option<U256>,
+    #[serde(flatten)]
+    pub status: TransactionReceiptStatus,
+}
+
+/// Status: either 1 (success) or 0 (failure).
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "status")]
+pub enum TransactionReceiptStatus {
+    #[serde(rename = "0x0")]
+    Failure,
+    #[serde(rename = "0x1")]
+    Success,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum TransactionReceiptKind {
+    /// - Legacy: The original transaction type
     #[serde(rename = "0x0")]
     Legacy,
+    /// - EIP2930: Optional access lists
+    /// https://eips.ethereum.org/EIPS/eip-2930
     #[serde(rename = "0x1")]
     Eip2930,
+    /// EIP1559: Fee market change for ETH 1.0 chain
+    /// - https://eips.ethereum.org/EIPS/eip-1559
     #[serde(rename = "0x2")]
     Eip1559,
+    /// EIP4844: Shard Blob Transactions
+    /// - https://eips.ethereum.org/EIPS/eip-4844
     #[serde(rename = "0x3")]
     Eip4844 {
         /// The amount of blob gas used for this specific transaction.
@@ -1000,7 +1016,6 @@ impl Debug for TransactionReceipt {
             .field("contract_address", &self.contract_address)
             .field("logs", &self.logs)
             .field("logs_bloom", &self.logs_bloom)
-            .field("root", &self.root)
             .field("status", &self.status)
             .finish()
     }

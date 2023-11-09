@@ -543,7 +543,7 @@ mod tests {
                             "blobGasUsed": "0x123",
                             "blobGasPrice": "0x12345"
                         }
-                    ]
+                      ]
                     ]"#,
                 )
                 .unwrap(),

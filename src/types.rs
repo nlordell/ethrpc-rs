@@ -995,7 +995,7 @@ pub enum TransactionReceiptKind {
         #[serde(rename = "blobGasUsed")]
         blob_gas_used: U256,
         /// The actual value per gas deducted from the sender's account for blob gas.
-        /// Only specified for blob transactions as defined by [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844).
+        /// Only specified for blob transactions as defined by EIP-4844.
         #[serde(rename = "blobGasPrice")]
         blob_gas_price: U256,
     },

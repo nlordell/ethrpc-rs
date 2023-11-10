@@ -922,7 +922,7 @@ impl Debug for Log {
     }
 }
 
-/// An Ethereum Transaction Receipt
+/// An Ethereum transaction receipt.
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionReceipt {
@@ -930,9 +930,9 @@ pub struct TransactionReceipt {
     /// See `TransactionReceiptKind` for summaries and references.
     #[serde(flatten)]
     pub kind: TransactionReceiptKind,
-    /// The hash of the transaction that emitted this log.
+    /// The hash of the transaction.
     pub transaction_hash: Digest,
-    /// The index of the transaction that emitted this log within the block.
+    /// The index of the transaction within the block it was included.
     pub transaction_index: U256,
     /// The hash of the block containing the transaction.
     pub block_hash: Digest,
@@ -962,6 +962,7 @@ pub struct TransactionReceipt {
     pub status: TransactionReceiptStatus,
 }
 
+/// The status of a `TransactionReceipt` (whether is succeeded or failed).
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum TransactionReceiptStatus {
     /// Status of a failed transaction.
@@ -972,6 +973,7 @@ pub enum TransactionReceiptStatus {
     Success,
 }
 
+/// The type of a `TransactionReceipt`.
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum TransactionReceiptKind {

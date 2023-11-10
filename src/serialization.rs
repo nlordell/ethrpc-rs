@@ -4,43 +4,6 @@
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-/// Serialize an `Option<[u8]>`
-pub mod option_bytes {
-    use super::{
-        bytes::{decode, encode},
-        *,
-    };
-    use std::{borrow::Cow, str};
-
-    #[doc(hidden)]
-    pub fn serialize<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        T: AsRef<[u8]>,
-        S: Serializer,
-    {
-        let bytes = match value {
-            Some(value) => value.as_ref(),
-            None => return serializer.serialize_none(),
-        };
-
-        serializer.serialize_some(&encode(bytes))
-    }
-
-    #[doc(hidden)]
-    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
-    where
-        T: From<Vec<u8>>,
-        D: Deserializer<'de>,
-    {
-        let hex = match Option::<Cow<str>>::deserialize(deserializer)? {
-            Some(value) => value,
-            None => return Ok(None),
-        };
-
-        Ok(Some(decode(&hex)?.into()))
-    }
-}
-
 /// Serialize a fixed size `[u8; N]`.
 pub mod bytearray {
     use super::{bytes, *};
@@ -135,6 +98,80 @@ pub mod bytes {
         D: Deserializer<'de>,
     {
         Ok(decode(&Cow::<str>::deserialize(deserializer)?)?.into())
+    }
+}
+
+/// Serialize an `Option<[u8]>`
+pub mod option_bytes {
+    use super::{
+        bytes::{decode, encode},
+        *,
+    };
+    use std::{borrow::Cow, str};
+
+    #[doc(hidden)]
+    pub fn serialize<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: AsRef<[u8]>,
+        S: Serializer,
+    {
+        match value {
+            Some(bytes) => serializer.serialize_some(&encode(bytes.as_ref())),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+    where
+        T: From<Vec<u8>>,
+        D: Deserializer<'de>,
+    {
+        match Option::<Cow<str>>::deserialize(deserializer)? {
+            Some(hex) => Ok(Some(decode(&hex)?.into())),
+            None => Ok(None),
+        }
+    }
+}
+
+/// Serialize an `Option<Vec<Vec<u8>>>`
+pub mod option_vec_vec_bytes {
+    use super::{
+        bytes::{decode, encode},
+        *,
+    };
+    use std::{borrow::Cow, str};
+
+    #[doc(hidden)]
+    pub fn serialize<S>(value: &Option<Vec<Vec<u8>>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value {
+            Some(value) => serializer.serialize_some(
+                &value
+                    .iter()
+                    .map(|bytes| encode(bytes.as_ref()))
+                    .collect::<Vec<_>>(),
+            ),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Vec<Vec<u8>>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match Option::<Vec<Cow<str>>>::deserialize(deserializer)? {
+            Some(value) => Ok(Some(
+                value
+                    .into_iter()
+                    .map(|item| decode(&item))
+                    .collect::<Result<Vec<_>, D::Error>>()?,
+            )),
+            None => Ok(None),
+        }
     }
 }
 

@@ -227,7 +227,7 @@ mod tests {
     use super::*;
     use crate::{
         eth,
-        types::{BlockSpec, BlockTag, Empty, Hydrated, TransactionReceiptKind, U256},
+        types::{BlockTag, Empty, Hydrated, TransactionReceiptKind},
     };
     use serde_json::json;
 
@@ -267,7 +267,7 @@ mod tests {
             (
                 (eth::BlockNumber, Empty),
                 (eth::GetBlockByNumber, (BlockTag::Safe.into(), Hydrated::No)),
-                (eth::GetBlockReceipts, (BlockSpec::Number(U256::new(18_460_382)), )),
+                (eth::GetBlockReceipts, (18_460_382.into(),)),
             ),
             roundtrip(
                 json!([
@@ -551,9 +551,9 @@ mod tests {
         .unwrap();
         assert_eq!(
             receipts.unwrap()[0].kind,
-            TransactionReceiptKind::Eip4844 {
-                blob_gas_used: U256::new(291),
-                blob_gas_price: U256::new(74_565)
+            TransactionReceiptKind::Erc4844 {
+                blob_gas_used: 291_u64.into(),
+                blob_gas_price: 74_565_u64.into(),
             }
         );
         assert_eq!(latest, 0x1163fd1);

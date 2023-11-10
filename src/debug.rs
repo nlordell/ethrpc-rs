@@ -19,3 +19,16 @@ impl Display for Hex<'_> {
         Ok(())
     }
 }
+
+pub struct HexSlice<'a, T>(pub &'a [T]);
+
+impl<'a, T> Debug for HexSlice<'a, T>
+where
+    T: AsRef<[u8]>,
+{
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_list()
+            .entries(self.0.iter().map(T::as_ref).map(Hex))
+            .finish()
+    }
+}

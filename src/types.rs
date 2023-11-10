@@ -959,12 +959,10 @@ pub struct TransactionReceipt {
     /// The log bloom filter.
     pub logs_bloom: Bloom,
     /// The transaction status, indicating whether it succeeded or reverted.
-    #[serde(flatten)]
     pub status: TransactionReceiptStatus,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(tag = "status")]
 pub enum TransactionReceiptStatus {
     /// Status of a failed transaction.
     #[serde(rename = "0x0")]

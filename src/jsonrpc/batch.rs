@@ -227,7 +227,7 @@ mod tests {
     use super::*;
     use crate::{
         eth,
-        types::{BlockTag, Empty, Hydrated},
+        types::{BlockSpec, BlockTag, Empty, Hydrated, TransactionReceiptKind, U256},
     };
     use serde_json::json;
 
@@ -263,15 +263,17 @@ mod tests {
 
     #[test]
     fn batch_request() {
-        let (latest, safe) = call(
+        let (latest, safe, receipts) = call(
             (
                 (eth::BlockNumber, Empty),
                 (eth::GetBlockByNumber, (BlockTag::Safe.into(), Hydrated::No)),
+                (eth::GetBlockReceipts, (BlockSpec::Number(U256::new(18_460_382)), )),
             ),
             roundtrip(
                 json!([
                     { "method": "eth_blockNumber", "params": [] },
                     { "method": "eth_getBlockByNumber", "params": ["safe", false] },
+                    { "method": "eth_getBlockReceipts", "params": ["0x119aede"] },
                 ]),
                 serde_json::from_str(
                     r#"[
@@ -520,14 +522,40 @@ mod tests {
                           }
                         ],
                         "withdrawalsRoot": "0x0c6cfaf85519d8d390d3100202d6b9205482382d5f97caca01cf2dbb3a0365d9"
-                      }
+                      },
+                      [
+                        {
+                            "blockHash": "0x79313e7f7904f21e3e3f0abced0cd95b154bca0b4d0c4a5ddfbc70442c7f7205",
+                            "blockNumber": "0x119aede",
+                            "contractAddress": null,
+                            "cumulativeGasUsed": "0xf0c1",
+                            "effectiveGasPrice": "0x2bfe06c9d",
+                            "from": "0xa3b458db8381dcc1fc4529a41ebe2804b07e7ef6",
+                            "gasUsed": "0xf0c1",
+                            "logs": [],
+                            "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                            "status": "0x0",
+                            "to": "0x49048044d57e1c92a77f79988d21fa8faf74e97e",
+                            "transactionHash": "0xdf3aa03889d1de2f198f31ccaeeb83019c2f9140cad911011a9d4d2849157393",
+                            "transactionIndex": "0x0",
+                            "type": "0x3",
+                            "blobGasUsed": "0x123",
+                            "blobGasPrice": "0x12345"
+                        }
+                      ]
                     ]"#,
                 )
                 .unwrap(),
             ),
         )
         .unwrap();
-
+        assert_eq!(
+            receipts.unwrap()[0].kind,
+            TransactionReceiptKind::Eip4844 {
+                blob_gas_used: U256::new(291),
+                blob_gas_price: U256::new(74_565)
+            }
+        );
         assert_eq!(latest, 0x1163fd1);
         assert_eq!(safe.unwrap().number, 0x1163fa3);
     }

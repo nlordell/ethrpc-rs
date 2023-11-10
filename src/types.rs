@@ -921,3 +921,105 @@ impl Debug for Log {
             .finish()
     }
 }
+
+/// An Ethereum transaction receipt.
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionReceipt {
+    /// The type of the transaction. These have evolved over several EIPs;
+    /// See `TransactionReceiptKind` for summaries and references.
+    #[serde(flatten)]
+    pub kind: TransactionReceiptKind,
+    /// The hash of the transaction.
+    pub transaction_hash: Digest,
+    /// The index of the transaction within the block it was included.
+    pub transaction_index: U256,
+    /// The hash of the block containing the transaction.
+    pub block_hash: Digest,
+    /// The height of the block containing the transaction.
+    pub block_number: U256,
+    /// Address of transaction sender.
+    pub from: Address,
+    /// Transaction receipient ([`None`] for contract creation).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to: Option<Address>,
+    /// The price paid post-execution by the transaction (i.e. base fee + priority fee).
+    /// Both fields in 1559-style transactions are *maximums* (max fee + max priority fee), the
+    /// amount that's actually paid by users can only be determined post-execution.
+    pub effective_gas_price: U256,
+    /// The sum of gas used by this transaction and all preceding transactions in the same block.
+    pub cumulative_gas_used: U256,
+    /// The amount of gas used for this specific transaction alone.
+    pub gas_used: U256,
+    /// Contract address created, or `None` if not a deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contract_address: Option<Address>,
+    /// Logs emitted by the transaction.
+    pub logs: Vec<Log>,
+    /// The log bloom filter.
+    pub logs_bloom: Bloom,
+    /// The transaction status, indicating whether it succeeded or reverted.
+    pub status: TransactionReceiptStatus,
+}
+
+/// The status of a `TransactionReceipt` (whether is succeeded or failed).
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub enum TransactionReceiptStatus {
+    /// Status of a failed transaction.
+    #[serde(rename = "0x0")]
+    Failure,
+    /// Status of a successful transaction.
+    #[serde(rename = "0x1")]
+    Success,
+}
+
+/// The type of a `TransactionReceipt`.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "type")]
+pub enum TransactionReceiptKind {
+    /// - Legacy: The original transaction type
+    #[serde(rename = "0x0")]
+    Legacy,
+    /// - EIP-2930: Optional access lists
+    ///   https://eips.ethereum.org/EIPS/eip-2930
+    #[serde(rename = "0x1")]
+    Eip2930,
+    /// EIP-1559: Fee market change for ETH 1.0 chain
+    ///   https://eips.ethereum.org/EIPS/eip-1559
+    #[serde(rename = "0x2")]
+    Eip1559,
+    /// EIP-4844: Shard Blob Transactions
+    ///   https://eips.ethereum.org/EIPS/eip-4844
+    #[serde(rename = "0x3")]
+    Eip4844 {
+        /// The amount of blob gas used for this specific transaction.
+        /// Only specified for blob transactions as defined by EIP-4844.
+        #[serde(rename = "blobGasUsed")]
+        blob_gas_used: U256,
+        /// The actual value per gas deducted from the sender's account for blob gas.
+        /// Only specified for blob transactions as defined by EIP-4844.
+        #[serde(rename = "blobGasPrice")]
+        blob_gas_price: U256,
+    },
+}
+
+impl Debug for TransactionReceipt {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("Log")
+            .field("kind", &self.kind)
+            .field("transaction_hash", &self.transaction_hash)
+            .field("transaction_index", &self.transaction_index)
+            .field("block_hash", &self.block_hash)
+            .field("block_number", &self.block_number)
+            .field("from", &self.from)
+            .field("to", &self.to)
+            .field("effective_gas_price", &self.effective_gas_price)
+            .field("cumulative_gas_used", &self.cumulative_gas_used)
+            .field("gas_used", &self.gas_used)
+            .field("contract_address", &self.contract_address)
+            .field("logs", &self.logs)
+            .field("logs_bloom", &self.logs_bloom)
+            .field("status", &self.status)
+            .finish()
+    }
+}

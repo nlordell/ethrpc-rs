@@ -551,7 +551,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             receipts.unwrap()[0].kind,
-            TransactionReceiptKind::Erc4844 {
+            TransactionReceiptKind::Eip4844 {
                 blob_gas_used: 291_u64.into(),
                 blob_gas_price: 74_565_u64.into(),
             }

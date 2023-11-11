@@ -234,15 +234,15 @@ pub enum SignedTransaction {
     /// Signed legacy transaction.
     #[serde(rename = "0x0")]
     Legacy(SignedLegacyTransaction),
-    /// Signed ERC-2930 transaction.
+    /// Signed EIP-2930 transaction.
     #[serde(rename = "0x1")]
-    Erc2930(SignedErc2930Transaction),
-    /// Signed ERC-1559 transaction.
+    Eip2930(SignedEip2930Transaction),
+    /// Signed EIP-1559 transaction.
     #[serde(rename = "0x2")]
-    Erc1559(SignedErc1559Transaction),
-    /// Signed ERC-4844 transaction.
+    Eip1559(SignedEip1559Transaction),
+    /// Signed EIP-4844 transaction.
     #[serde(rename = "0x3")]
-    Erc4844(SignedErc4844Transaction),
+    Eip4844(SignedEip4844Transaction),
 }
 
 /// The signature parity.
@@ -324,10 +324,10 @@ impl Debug for SignedLegacyTransaction {
     }
 }
 
-/// Signed ERC-2930 transaction.
+/// Signed EIP-2930 transaction.
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SignedErc2930Transaction {
+pub struct SignedEip2930Transaction {
     /// The transaction nonce.
     pub nonce: U256,
     /// The transaction recipient.
@@ -355,9 +355,9 @@ pub struct SignedErc2930Transaction {
     pub s: U256,
 }
 
-impl Debug for SignedErc2930Transaction {
+impl Debug for SignedEip2930Transaction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_struct("SignedErc2930Transaction")
+        f.debug_struct("SignedEip2930Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
             .field("gas", &self.gas)
@@ -373,10 +373,10 @@ impl Debug for SignedErc2930Transaction {
     }
 }
 
-/// Signed ERC-1559 transaction.
+/// Signed EIP-1559 transaction.
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SignedErc1559Transaction {
+pub struct SignedEip1559Transaction {
     /// The transaction nonce.
     pub nonce: U256,
     /// The transaction recipient.
@@ -407,9 +407,9 @@ pub struct SignedErc1559Transaction {
     pub s: U256,
 }
 
-impl Debug for SignedErc1559Transaction {
+impl Debug for SignedEip1559Transaction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_struct("SignedErc1559Transaction")
+        f.debug_struct("SignedEip1559Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
             .field("gas", &self.gas)
@@ -426,10 +426,10 @@ impl Debug for SignedErc1559Transaction {
     }
 }
 
-/// Signed ERC-4844 transaction.
+/// Signed EIP-4844 transaction.
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SignedErc4844Transaction {
+pub struct SignedEip4844Transaction {
     /// The transaction nonce.
     pub nonce: U256,
     /// The transaction recipient.
@@ -452,7 +452,7 @@ pub struct SignedErc4844Transaction {
     pub max_fee_per_blob_gas: U256,
     /// State access list.
     pub access_list: AccessList,
-    /// List of versioned blob hashes associated with the transaction's ERC-4844
+    /// List of versioned blob hashes associated with the transaction's EIP-4844
     /// data blobs.
     pub blob_versioned_hashes: Vec<Digest>,
     /// Chain ID that the transaction is valid on.
@@ -466,9 +466,9 @@ pub struct SignedErc4844Transaction {
     pub s: U256,
 }
 
-impl Debug for SignedErc4844Transaction {
+impl Debug for SignedEip4844Transaction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_struct("SignedErc4844Transaction")
+        f.debug_struct("SignedEip4844Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
             .field("gas", &self.gas)
@@ -642,7 +642,7 @@ pub struct TransactionCall {
     /// State access list.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_list: Option<AccessList>,
-    /// List of versioned blob hashes associated with the transaction's ERC-4844
+    /// List of versioned blob hashes associated with the transaction's EIP-4844
     /// data blobs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blob_versioned_hashes: Option<Vec<Digest>>,
@@ -686,12 +686,12 @@ pub enum TransactionCallKind {
     /// Legacy transaction type.
     #[default]
     Legacy = 0,
-    /// An ERC-2930 transaction type.
-    Erc2930 = 1,
-    /// An ERC-1559 transaction type.
-    Erc1559 = 2,
-    /// An ERC-4844 transaction type.
-    Erc4844 = 3,
+    /// An EIP-2930 transaction type.
+    Eip2930 = 1,
+    /// An EIP-1559 transaction type.
+    Eip1559 = 2,
+    /// An EIP-4844 transaction type.
+    Eip4844 = 3,
 }
 
 impl Serialize for TransactionCallKind {
@@ -711,9 +711,9 @@ impl<'de> Deserialize<'de> for TransactionCallKind {
         let value = U256::deserialize(deserializer)?;
         match u8::try_from(value) {
             Ok(0) => Ok(Self::Legacy),
-            Ok(1) => Ok(Self::Erc2930),
-            Ok(2) => Ok(Self::Erc1559),
-            Ok(3) => Ok(Self::Erc4844),
+            Ok(1) => Ok(Self::Eip2930),
+            Ok(2) => Ok(Self::Eip1559),
+            Ok(3) => Ok(Self::Eip4844),
             _ => Err(de::Error::custom(format!(
                 "invalid transaction type {value}"
             ))),
@@ -769,7 +769,7 @@ pub enum LogBlocks {
     /// An inclusive block range to include logs for.
     Range { from: BlockSpec, to: BlockSpec },
     /// An exact block hash to query logs for. See
-    /// [ERC-234](https://eips.ethereum.org/EIPS/eip-234).
+    /// [EIP-234](https://eips.ethereum.org/EIPS/eip-234).
     Hash(Digest),
 }
 
@@ -1034,15 +1034,15 @@ pub enum TransactionReceiptKind {
     /// Legacy transaction type.
     #[serde(rename = "0x0")]
     Legacy,
-    /// ERC-2930 transaction type.
+    /// EIP-2930 transaction type.
     #[serde(rename = "0x1")]
-    Erc2930,
-    /// ERC-1559 transaction type.
+    Eip2930,
+    /// EIP-1559 transaction type.
     #[serde(rename = "0x2")]
-    Erc1559,
-    /// ERC-4844 transaction type.
+    Eip1559,
+    /// EIP-4844 transaction type.
     #[serde(rename = "0x3")]
-    Erc4844 {
+    Eip4844 {
         /// The amount of blob gas used for this specific transaction.
         #[serde(rename = "blobGasUsed")]
         blob_gas_used: U256,

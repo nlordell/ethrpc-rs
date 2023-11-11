@@ -76,6 +76,10 @@ module! {
         /// Returns information about a transaction requested by transaction hash.
         pub struct GetTransactionByHash as "eth_getTransactionByHash"
             (Digest,) => Option<SignedTransaction>;
+
+        /// Returns the receipt of a transaction by transaction hash.
+        pub struct GetTransactionReceipt as "eth_getTransactionReceipt"
+            (Digest,) => Option<TransactionReceipt>;
     }
 }
 

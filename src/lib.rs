@@ -83,7 +83,7 @@ module! {
 
         /// Returns the value from a storage position at a given address.
         pub struct GetStorageAt as "eth_getStorageAt"
-            (Address, U256, Option<BlockSpec>) => [u8; 32] [serialization::bytearray];
+            (Address, U256, Option<BlockId>) => [u8; 32] [serialization::bytearray];
 
         /// Returns information about a transaction by block hash and transaction index position.
         pub struct GetTransactionByBlockHashAndIndex as "eth_getTransactionByBlockHashAndIndex"

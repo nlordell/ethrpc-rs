@@ -43,7 +43,7 @@ module! {
 
         /// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
         pub struct EstimateGas as "eth_estimateGas"
-            (TransactionCall, BlockId) => U256;
+            (TransactionCall, BlockSpec) => U256;
 
         /// Returns the current price per gas in wei.
         pub struct GasPrice as "eth_gasPrice"
@@ -51,7 +51,7 @@ module! {
 
         /// Returns the balance of the account of given address.
         pub struct GetBalance as "eth_getBalance"
-            (Address, Option<BlockSpec>) => U256;
+            (Address, Option<BlockId>) => U256;
 
         /// Returns information about a block by hash.
         pub struct GetBlockByHash as "eth_getBlockByHash"
@@ -99,7 +99,7 @@ module! {
 
         /// Returns the value from a storage position at a given address.
         pub struct GetTransactionCount as "eth_getTransactionCount"
-            (Address, Option<BlockSpec>) => U256;
+            (Address, Option<BlockId>) => U256;
 
         /// Returns the receipt of a transaction by transaction hash.
         pub struct GetTransactionReceipt as "eth_getTransactionReceipt"

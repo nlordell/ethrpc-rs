@@ -287,6 +287,8 @@ pub struct SignedLegacyTransaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
@@ -314,6 +316,7 @@ impl Debug for SignedLegacyTransaction {
         f.debug_struct("SignedLegacyTransaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
             .field("input", &debug::Hex(&self.input))
@@ -336,6 +339,8 @@ pub struct SignedEip2930Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
@@ -365,6 +370,7 @@ impl Debug for SignedEip2930Transaction {
         f.debug_struct("SignedEip2930Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
             .field("input", &debug::Hex(&self.input))
@@ -388,6 +394,8 @@ pub struct SignedEip1559Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
@@ -420,6 +428,7 @@ impl Debug for SignedEip1559Transaction {
         f.debug_struct("SignedEip1559Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
             .field("input", &debug::Hex(&self.input))
@@ -444,6 +453,8 @@ pub struct SignedEip4844Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
@@ -456,7 +467,7 @@ pub struct SignedEip4844Transaction {
     /// The maximum total fee per gas the sender is willing to pay, including
     /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
     pub max_fee_per_gas: U256,
-    /// Hash of the signed transaction
+    /// Hash of the signed transaction.
     pub hash: Digest,
     /// The maximum total fee per gas the sender is willing to pay for blob gas
     /// in wei.
@@ -482,6 +493,7 @@ impl Debug for SignedEip4844Transaction {
         f.debug_struct("SignedEip4844Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
             .field("input", &debug::Hex(&self.input))

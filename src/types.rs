@@ -291,6 +291,15 @@ impl SignedTransaction {
         }
     }
 
+    pub fn transaction_index(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.transaction_index,
+            SignedTransaction::Eip2930(tx) => tx.transaction_index,
+            SignedTransaction::Eip1559(tx) => tx.transaction_index,
+            SignedTransaction::Eip4844(tx) => tx.transaction_index,
+        }
+    }
+
     pub fn input(&self) -> Vec<u8> {
         match self {
             SignedTransaction::Legacy(tx) => tx.input.clone(),
@@ -358,6 +367,8 @@ pub struct SignedLegacyTransaction {
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -384,6 +395,7 @@ impl Debug for SignedLegacyTransaction {
             .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
             .field("hash", &self.hash)
@@ -410,6 +422,8 @@ pub struct SignedEip2930Transaction {
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -438,6 +452,7 @@ impl Debug for SignedEip2930Transaction {
             .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
             .field("hash", &self.hash)
@@ -465,6 +480,8 @@ pub struct SignedEip1559Transaction {
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -496,6 +513,7 @@ impl Debug for SignedEip1559Transaction {
             .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
@@ -524,6 +542,8 @@ pub struct SignedEip4844Transaction {
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -561,6 +581,7 @@ impl Debug for SignedEip4844Transaction {
             .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)

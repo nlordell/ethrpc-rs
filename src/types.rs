@@ -245,6 +245,71 @@ pub enum SignedTransaction {
     Eip4844(SignedEip4844Transaction),
 }
 
+impl SignedTransaction {
+    pub fn nonce(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.nonce,
+            SignedTransaction::Eip2930(tx) => tx.nonce,
+            SignedTransaction::Eip1559(tx) => tx.nonce,
+            SignedTransaction::Eip4844(tx) => tx.nonce,
+        }
+    }
+
+    pub fn to(&self) -> Option<Address> {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.to,
+            SignedTransaction::Eip2930(tx) => tx.to,
+            SignedTransaction::Eip1559(tx) => tx.to,
+            SignedTransaction::Eip4844(tx) => tx.to,
+        }
+    }
+
+    pub fn from(&self) -> Address {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.from,
+            SignedTransaction::Eip2930(tx) => tx.from,
+            SignedTransaction::Eip1559(tx) => tx.from,
+            SignedTransaction::Eip4844(tx) => tx.from,
+        }
+    }
+
+    pub fn gas(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.gas,
+            SignedTransaction::Eip2930(tx) => tx.gas,
+            SignedTransaction::Eip1559(tx) => tx.gas,
+            SignedTransaction::Eip4844(tx) => tx.gas,
+        }
+    }
+
+    pub fn value(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.value,
+            SignedTransaction::Eip2930(tx) => tx.value,
+            SignedTransaction::Eip1559(tx) => tx.value,
+            SignedTransaction::Eip4844(tx) => tx.value,
+        }
+    }
+
+    pub fn input(&self) -> Vec<u8> {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.input.clone(),
+            SignedTransaction::Eip2930(tx) => tx.input.clone(),
+            SignedTransaction::Eip1559(tx) => tx.input.clone(),
+            SignedTransaction::Eip4844(tx) => tx.input.clone(),
+        }
+    }
+
+    pub fn hash(&self) -> Digest {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.hash,
+            SignedTransaction::Eip2930(tx) => tx.hash,
+            SignedTransaction::Eip1559(tx) => tx.hash,
+            SignedTransaction::Eip4844(tx) => tx.hash,
+        }
+    }
+}
+
 /// The signature parity.
 #[derive(Clone, Copy, Debug, Eq, Ord, Hash, PartialEq, PartialOrd)]
 #[repr(u8)]

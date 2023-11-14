@@ -296,6 +296,8 @@ pub struct SignedLegacyTransaction {
     pub input: Vec<u8>,
     /// Gas price willing to be paid by the sender.
     pub gas_price: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// Chain ID that the transaction is valid on.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chain_id: Option<U256>,
@@ -316,6 +318,7 @@ impl Debug for SignedLegacyTransaction {
             .field("value", &self.value)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
+            .field("hash", &self.hash)
             .field("chain_id", &self.chain_id)
             .field("v", &self.v)
             .field("r", &self.r)
@@ -342,6 +345,8 @@ pub struct SignedEip2930Transaction {
     pub input: Vec<u8>,
     /// Gas price willing to be paid by the sender.
     pub gas_price: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// State access list.
     pub access_list: AccessList,
     /// Chain ID that the transaction is valid on.
@@ -364,6 +369,7 @@ impl Debug for SignedEip2930Transaction {
             .field("value", &self.value)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
+            .field("hash", &self.hash)
             .field("access_list", &self.access_list)
             .field("chain_id", &self.chain_id)
             .field("y_parity", &self.y_parity)
@@ -394,6 +400,8 @@ pub struct SignedEip1559Transaction {
     /// The maximum total fee per gas the sender is willing to pay, including
     /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
     pub max_fee_per_gas: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// State access list.
     pub access_list: AccessList,
     /// Chain ID that the transaction is valid on.
@@ -417,6 +425,7 @@ impl Debug for SignedEip1559Transaction {
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
+            .field("hash", &self.hash)
             .field("access_list", &self.access_list)
             .field("chain_id", &self.chain_id)
             .field("y_parity", &self.y_parity)
@@ -447,6 +456,8 @@ pub struct SignedEip4844Transaction {
     /// The maximum total fee per gas the sender is willing to pay, including
     /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
     pub max_fee_per_gas: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// The maximum total fee per gas the sender is willing to pay for blob gas
     /// in wei.
     pub max_fee_per_blob_gas: U256,
@@ -476,6 +487,7 @@ impl Debug for SignedEip4844Transaction {
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
+            .field("hash", &self.hash)
             .field("max_fee_per_blob_gas", &self.max_fee_per_blob_gas)
             .field("access_list", &self.access_list)
             .field("blob_versioned_hashes", &self.blob_versioned_hashes)

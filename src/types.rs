@@ -245,6 +245,80 @@ pub enum SignedTransaction {
     Eip4844(SignedEip4844Transaction),
 }
 
+impl SignedTransaction {
+    pub fn nonce(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.nonce,
+            SignedTransaction::Eip2930(tx) => tx.nonce,
+            SignedTransaction::Eip1559(tx) => tx.nonce,
+            SignedTransaction::Eip4844(tx) => tx.nonce,
+        }
+    }
+
+    pub fn to(&self) -> Option<Address> {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.to,
+            SignedTransaction::Eip2930(tx) => tx.to,
+            SignedTransaction::Eip1559(tx) => tx.to,
+            SignedTransaction::Eip4844(tx) => tx.to,
+        }
+    }
+
+    pub fn from(&self) -> Address {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.from,
+            SignedTransaction::Eip2930(tx) => tx.from,
+            SignedTransaction::Eip1559(tx) => tx.from,
+            SignedTransaction::Eip4844(tx) => tx.from,
+        }
+    }
+
+    pub fn gas(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.gas,
+            SignedTransaction::Eip2930(tx) => tx.gas,
+            SignedTransaction::Eip1559(tx) => tx.gas,
+            SignedTransaction::Eip4844(tx) => tx.gas,
+        }
+    }
+
+    pub fn value(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.value,
+            SignedTransaction::Eip2930(tx) => tx.value,
+            SignedTransaction::Eip1559(tx) => tx.value,
+            SignedTransaction::Eip4844(tx) => tx.value,
+        }
+    }
+
+    pub fn transaction_index(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.transaction_index,
+            SignedTransaction::Eip2930(tx) => tx.transaction_index,
+            SignedTransaction::Eip1559(tx) => tx.transaction_index,
+            SignedTransaction::Eip4844(tx) => tx.transaction_index,
+        }
+    }
+
+    pub fn input(&self) -> Vec<u8> {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.input.clone(),
+            SignedTransaction::Eip2930(tx) => tx.input.clone(),
+            SignedTransaction::Eip1559(tx) => tx.input.clone(),
+            SignedTransaction::Eip4844(tx) => tx.input.clone(),
+        }
+    }
+
+    pub fn hash(&self) -> Digest {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.hash,
+            SignedTransaction::Eip2930(tx) => tx.hash,
+            SignedTransaction::Eip1559(tx) => tx.hash,
+            SignedTransaction::Eip4844(tx) => tx.hash,
+        }
+    }
+}
+
 /// The signature parity.
 #[derive(Clone, Copy, Debug, Eq, Ord, Hash, PartialEq, PartialOrd)]
 #[repr(u8)]
@@ -287,15 +361,21 @@ pub struct SignedLegacyTransaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
     /// Gas price willing to be paid by the sender.
     pub gas_price: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// Chain ID that the transaction is valid on.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chain_id: Option<U256>,
@@ -312,10 +392,13 @@ impl Debug for SignedLegacyTransaction {
         f.debug_struct("SignedLegacyTransaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
+            .field("hash", &self.hash)
             .field("chain_id", &self.chain_id)
             .field("v", &self.v)
             .field("r", &self.r)
@@ -333,15 +416,21 @@ pub struct SignedEip2930Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
     /// Gas price willing to be paid by the sender.
     pub gas_price: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// State access list.
     pub access_list: AccessList,
     /// Chain ID that the transaction is valid on.
@@ -360,10 +449,13 @@ impl Debug for SignedEip2930Transaction {
         f.debug_struct("SignedEip2930Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
+            .field("hash", &self.hash)
             .field("access_list", &self.access_list)
             .field("chain_id", &self.chain_id)
             .field("y_parity", &self.y_parity)
@@ -382,10 +474,14 @@ pub struct SignedEip1559Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -394,6 +490,8 @@ pub struct SignedEip1559Transaction {
     /// The maximum total fee per gas the sender is willing to pay, including
     /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
     pub max_fee_per_gas: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// State access list.
     pub access_list: AccessList,
     /// Chain ID that the transaction is valid on.
@@ -412,11 +510,14 @@ impl Debug for SignedEip1559Transaction {
         f.debug_struct("SignedEip1559Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
+            .field("hash", &self.hash)
             .field("access_list", &self.access_list)
             .field("chain_id", &self.chain_id)
             .field("y_parity", &self.y_parity)
@@ -435,10 +536,14 @@ pub struct SignedEip4844Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -447,6 +552,8 @@ pub struct SignedEip4844Transaction {
     /// The maximum total fee per gas the sender is willing to pay, including
     /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
     pub max_fee_per_gas: U256,
+    /// Hash of the signed transaction.
+    pub hash: Digest,
     /// The maximum total fee per gas the sender is willing to pay for blob gas
     /// in wei.
     pub max_fee_per_blob_gas: U256,
@@ -471,11 +578,14 @@ impl Debug for SignedEip4844Transaction {
         f.debug_struct("SignedEip4844Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
+            .field("hash", &self.hash)
             .field("max_fee_per_blob_gas", &self.max_fee_per_blob_gas)
             .field("access_list", &self.access_list)
             .field("blob_versioned_hashes", &self.blob_versioned_hashes)

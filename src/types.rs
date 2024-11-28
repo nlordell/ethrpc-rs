@@ -243,6 +243,91 @@ pub enum SignedTransaction {
     /// Signed EIP-4844 transaction.
     #[serde(rename = "0x3")]
     Eip4844(SignedEip4844Transaction),
+    /// Undocumented BLAST System Tx
+    #[serde(rename = "0x7e")]
+    BlastSystemTx(BlastSystemTransaction),
+}
+
+impl SignedTransaction {
+    pub fn nonce(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.nonce,
+            SignedTransaction::Eip2930(tx) => tx.nonce,
+            SignedTransaction::Eip1559(tx) => tx.nonce,
+            SignedTransaction::Eip4844(tx) => tx.nonce,
+            Self::BlastSystemTx(tx) => tx.nonce,
+        }
+    }
+
+    pub fn to(&self) -> Option<Address> {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.to,
+            SignedTransaction::Eip2930(tx) => tx.to,
+            SignedTransaction::Eip1559(tx) => tx.to,
+            SignedTransaction::Eip4844(tx) => tx.to,
+            Self::BlastSystemTx(tx) => tx.to,
+        }
+    }
+
+    pub fn from(&self) -> Address {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.from,
+            SignedTransaction::Eip2930(tx) => tx.from,
+            SignedTransaction::Eip1559(tx) => tx.from,
+            SignedTransaction::Eip4844(tx) => tx.from,
+            Self::BlastSystemTx(tx) => tx.from,
+        }
+    }
+
+    pub fn gas(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.gas,
+            SignedTransaction::Eip2930(tx) => tx.gas,
+            SignedTransaction::Eip1559(tx) => tx.gas,
+            SignedTransaction::Eip4844(tx) => tx.gas,
+            Self::BlastSystemTx(tx) => tx.gas,
+        }
+    }
+
+    pub fn value(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.value,
+            SignedTransaction::Eip2930(tx) => tx.value,
+            SignedTransaction::Eip1559(tx) => tx.value,
+            SignedTransaction::Eip4844(tx) => tx.value,
+            Self::BlastSystemTx(tx) => tx.value,
+        }
+    }
+
+    pub fn transaction_index(&self) -> U256 {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.transaction_index,
+            SignedTransaction::Eip2930(tx) => tx.transaction_index,
+            SignedTransaction::Eip1559(tx) => tx.transaction_index,
+            SignedTransaction::Eip4844(tx) => tx.transaction_index,
+            Self::BlastSystemTx(tx) => tx.transaction_index,
+        }
+    }
+
+    pub fn input(&self) -> Vec<u8> {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.input.clone(),
+            SignedTransaction::Eip2930(tx) => tx.input.clone(),
+            SignedTransaction::Eip1559(tx) => tx.input.clone(),
+            SignedTransaction::Eip4844(tx) => tx.input.clone(),
+            Self::BlastSystemTx(tx) => tx.input.clone(),
+        }
+    }
+
+    pub fn hash(&self) -> Digest {
+        match self {
+            SignedTransaction::Legacy(tx) => tx.hash,
+            SignedTransaction::Eip2930(tx) => tx.hash,
+            SignedTransaction::Eip1559(tx) => tx.hash,
+            SignedTransaction::Eip4844(tx) => tx.hash,
+            Self::BlastSystemTx(tx) => tx.hash,
+        }
+    }
 }
 
 /// The signature parity.
@@ -287,15 +372,21 @@ pub struct SignedLegacyTransaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
     /// Gas price willing to be paid by the sender.
     pub gas_price: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// Chain ID that the transaction is valid on.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chain_id: Option<U256>,
@@ -312,10 +403,13 @@ impl Debug for SignedLegacyTransaction {
         f.debug_struct("SignedLegacyTransaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
+            .field("hash", &self.hash)
             .field("chain_id", &self.chain_id)
             .field("v", &self.v)
             .field("r", &self.r)
@@ -333,22 +427,30 @@ pub struct SignedEip2930Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
     /// Gas price willing to be paid by the sender.
     pub gas_price: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// State access list.
     pub access_list: AccessList,
     /// Chain ID that the transaction is valid on.
     pub chain_id: U256,
+    /// V
+    pub v: YParity,
     /// Y parity of the signature.
-    #[serde(alias = "v")]
-    pub y_parity: YParity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y_parity: Option<YParity>,
     /// R
     pub r: U256,
     /// S
@@ -360,10 +462,13 @@ impl Debug for SignedEip2930Transaction {
         f.debug_struct("SignedEip2930Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("gas_price", &self.gas_price)
+            .field("hash", &self.hash)
             .field("access_list", &self.access_list)
             .field("chain_id", &self.chain_id)
             .field("y_parity", &self.y_parity)
@@ -382,10 +487,14 @@ pub struct SignedEip1559Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -394,13 +503,17 @@ pub struct SignedEip1559Transaction {
     /// The maximum total fee per gas the sender is willing to pay, including
     /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
     pub max_fee_per_gas: U256,
+    /// Hash of the signed transaction
+    pub hash: Digest,
     /// State access list.
     pub access_list: AccessList,
     /// Chain ID that the transaction is valid on.
     pub chain_id: U256,
     /// Y parity of the signature.
-    #[serde(alias = "v")]
-    pub y_parity: YParity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y_parity: Option<YParity>,
+    /// V
+    pub v: YParity,
     /// R
     pub r: U256,
     /// S
@@ -412,11 +525,14 @@ impl Debug for SignedEip1559Transaction {
         f.debug_struct("SignedEip1559Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
+            .field("hash", &self.hash)
             .field("access_list", &self.access_list)
             .field("chain_id", &self.chain_id)
             .field("y_parity", &self.y_parity)
@@ -435,10 +551,14 @@ pub struct SignedEip4844Transaction {
     /// The transaction recipient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
     /// The limit in gas units for the transaction.
     pub gas: U256,
     /// The Ether value associated with the transaction.
     pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
     /// The calldata associated with the transaction.
     #[serde(with = "serialization::bytes")]
     pub input: Vec<u8>,
@@ -447,6 +567,8 @@ pub struct SignedEip4844Transaction {
     /// The maximum total fee per gas the sender is willing to pay, including
     /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
     pub max_fee_per_gas: U256,
+    /// Hash of the signed transaction.
+    pub hash: Digest,
     /// The maximum total fee per gas the sender is willing to pay for blob gas
     /// in wei.
     pub max_fee_per_blob_gas: U256,
@@ -458,8 +580,10 @@ pub struct SignedEip4844Transaction {
     /// Chain ID that the transaction is valid on.
     pub chain_id: U256,
     /// Y parity of the signature.
-    #[serde(alias = "v")]
-    pub y_parity: YParity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y_parity: Option<YParity>,
+    /// V
+    pub v: YParity,
     /// R
     pub r: U256,
     /// S
@@ -471,11 +595,14 @@ impl Debug for SignedEip4844Transaction {
         f.debug_struct("SignedEip4844Transaction")
             .field("nonce", &self.nonce)
             .field("to", &self.to)
+            .field("from", &self.from)
             .field("gas", &self.gas)
             .field("value", &self.value)
+            .field("transaction_index", &self.transaction_index)
             .field("input", &debug::Hex(&self.input))
             .field("max_priority_fee_per_gas", &self.max_priority_fee_per_gas)
             .field("max_fee_per_gas", &self.max_fee_per_gas)
+            .field("hash", &self.hash)
             .field("max_fee_per_blob_gas", &self.max_fee_per_blob_gas)
             .field("access_list", &self.access_list)
             .field("blob_versioned_hashes", &self.blob_versioned_hashes)
@@ -485,6 +612,42 @@ impl Debug for SignedEip4844Transaction {
             .field("s", &self.s)
             .finish()
     }
+}
+
+/// Signed EIP-4844 transaction.
+#[derive(Clone, Eq, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlastSystemTransaction {
+    /// The transaction nonce.
+    pub nonce: U256,
+    /// The transaction recipient.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
+    /// The limit in gas units for the transaction.
+    pub gas: U256,
+    /// Gas price willing to be paid by the sender.
+    pub gas_price: U256,
+    /// The Ether value associated with the transaction.
+    pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
+    /// The calldata associated with the transaction.
+    #[serde(with = "serialization::bytes")]
+    pub input: Vec<u8>,
+    /// Hash of the signed transaction.
+    pub hash: Digest,
+    /// V
+    pub v: YParity,
+    /// R
+    pub r: U256,
+    /// S
+    pub s: U256,
+    // Undocumented extra fields.
+    pub source_hash: Digest,
+    pub mint: U256,
+    pub deposit_receipt_version: U256,
 }
 
 /// A validator withdrawal.
@@ -533,9 +696,10 @@ pub struct Block {
     #[serde(with = "serialization::bytes")]
     pub extra_data: Vec<u8>,
     /// The mix hash.
+    #[serde(default)]
     pub mix_hash: Digest,
     /// The nonce.
-    pub nonce: BlockNonce,
+    pub nonce: Option<BlockNonce>,
     /// The total difficulty.
     pub total_difficulty: U256,
     /// The base fee per gas.
@@ -1070,5 +1234,46 @@ impl Debug for TransactionReceipt {
             .field("logs_bloom", &self.logs_bloom)
             .field("status", &self.status)
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signed_tx_serialization() {
+        let json_str = r#"{
+                        "blockHash": "0xfc70e073ec6e1bb7f387698e4be418d7b1ff2216f625cdf41e1b80fb08029ef5",
+                        "blockNumber": "0x112",
+                        "from": "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001",
+                        "gas": "0xf4240",
+                        "gasPrice": "0x0",
+                        "hash": "0x13a644af4f64ce801dcd57faa823e8952f2290b810fdd31995dda62977ed3df1",
+                        "input": "0x015d8eb90000000000000000000000000000000000000000000000000000000001267f330000000000000000000000000000000000000000000000000000000065da6073000000000000000000000000000000000000000000000000000000075d3f861097c24796a4f639846a6a3ea3a59c11de8d89e11f551bae8feca9271a78926d420000000000000000000000000000000000000000000000000000000000000004000000000000000000000000415c8893d514f9bc5211d36eeda4183226b84aa700000000000000000000000000000000000000000000000000000000000000bc00000000000000000000000000000000000000000000000000000000000a6fe0",
+                        "nonce": "0x111",
+                        "to": "0x4200000000000000000000000000000000000015",
+                        "transactionIndex": "0x0",
+                        "value": "0x0",
+                        "type": "0x7e",
+                        "v": "0x0",
+                        "r": "0x0",
+                        "s": "0x0",
+                        "sourceHash": "0x5a1b66228a26547e2ce6fe1aa734d2c34e062e42ccd5710463e6987890f1ad5d",
+                        "mint": "0x0",
+                        "depositReceiptVersion": "0x1"
+                      }"#;
+        let result: Result<SignedTransaction, serde_json::Error> = serde_json::from_str(json_str);
+        println!("{:?}", result);
+        assert!(result.is_ok());
+
+        if let Ok(transaction) = result {
+            match transaction {
+                SignedTransaction::BlastSystemTx(_tx) => {
+                    // Could perform further checks on `tx` if needed
+                }
+                _ => panic!("Deserialized to the wrong variant of SignedTransaction"),
+            }
+        }
     }
 }

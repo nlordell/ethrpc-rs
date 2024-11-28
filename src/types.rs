@@ -243,6 +243,9 @@ pub enum SignedTransaction {
     /// Signed EIP-4844 transaction.
     #[serde(rename = "0x3")]
     Eip4844(SignedEip4844Transaction),
+    /// Undocumented BLAST System Tx
+    #[serde(rename = "0x7e")]
+    BlastSystemTx(BlastSystemTransaction),
 }
 
 impl SignedTransaction {
@@ -252,6 +255,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.nonce,
             SignedTransaction::Eip1559(tx) => tx.nonce,
             SignedTransaction::Eip4844(tx) => tx.nonce,
+            Self::BlastSystemTx(tx) => tx.nonce,
         }
     }
 
@@ -261,6 +265,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.to,
             SignedTransaction::Eip1559(tx) => tx.to,
             SignedTransaction::Eip4844(tx) => tx.to,
+            Self::BlastSystemTx(tx) => tx.to,
         }
     }
 
@@ -270,6 +275,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.from,
             SignedTransaction::Eip1559(tx) => tx.from,
             SignedTransaction::Eip4844(tx) => tx.from,
+            Self::BlastSystemTx(tx) => tx.from,
         }
     }
 
@@ -279,6 +285,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.gas,
             SignedTransaction::Eip1559(tx) => tx.gas,
             SignedTransaction::Eip4844(tx) => tx.gas,
+            Self::BlastSystemTx(tx) => tx.gas,
         }
     }
 
@@ -288,6 +295,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.value,
             SignedTransaction::Eip1559(tx) => tx.value,
             SignedTransaction::Eip4844(tx) => tx.value,
+            Self::BlastSystemTx(tx) => tx.value,
         }
     }
 
@@ -297,6 +305,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.transaction_index,
             SignedTransaction::Eip1559(tx) => tx.transaction_index,
             SignedTransaction::Eip4844(tx) => tx.transaction_index,
+            Self::BlastSystemTx(tx) => tx.transaction_index,
         }
     }
 
@@ -306,6 +315,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.input.clone(),
             SignedTransaction::Eip1559(tx) => tx.input.clone(),
             SignedTransaction::Eip4844(tx) => tx.input.clone(),
+            Self::BlastSystemTx(tx) => tx.input.clone(),
         }
     }
 
@@ -315,6 +325,7 @@ impl SignedTransaction {
             SignedTransaction::Eip2930(tx) => tx.hash,
             SignedTransaction::Eip1559(tx) => tx.hash,
             SignedTransaction::Eip4844(tx) => tx.hash,
+            Self::BlastSystemTx(tx) => tx.hash,
         }
     }
 }
@@ -435,7 +446,7 @@ pub struct SignedEip2930Transaction {
     pub access_list: AccessList,
     /// Chain ID that the transaction is valid on.
     pub chain_id: U256,
-    /// Y parity of the signature.
+    /// V
     pub v: YParity,
     /// Y parity of the signature.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -499,10 +510,10 @@ pub struct SignedEip1559Transaction {
     /// Chain ID that the transaction is valid on.
     pub chain_id: U256,
     /// Y parity of the signature.
-    pub v: YParity,
-    /// Y parity of the signature.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub y_parity: Option<YParity>,
+    /// V
+    pub v: YParity,
     /// R
     pub r: U256,
     /// S
@@ -569,10 +580,10 @@ pub struct SignedEip4844Transaction {
     /// Chain ID that the transaction is valid on.
     pub chain_id: U256,
     /// Y parity of the signature.
-    pub v: YParity,
-    /// Y parity of the signature.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub y_parity: Option<YParity>,
+    /// V
+    pub v: YParity,
     /// R
     pub r: U256,
     /// S
@@ -601,6 +612,42 @@ impl Debug for SignedEip4844Transaction {
             .field("s", &self.s)
             .finish()
     }
+}
+
+/// Signed EIP-4844 transaction.
+#[derive(Clone, Eq, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlastSystemTransaction {
+    /// The transaction nonce.
+    pub nonce: U256,
+    /// The transaction recipient.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to: Option<Address>,
+    /// The transaction sender.
+    pub from: Address,
+    /// The limit in gas units for the transaction.
+    pub gas: U256,
+    /// Gas price willing to be paid by the sender.
+    pub gas_price: U256,
+    /// The Ether value associated with the transaction.
+    pub value: U256,
+    /// The index of the transaction
+    pub transaction_index: U256,
+    /// The calldata associated with the transaction.
+    #[serde(with = "serialization::bytes")]
+    pub input: Vec<u8>,
+    /// Hash of the signed transaction.
+    pub hash: Digest,
+    /// V
+    pub v: YParity,
+    /// R
+    pub r: U256,
+    /// S
+    pub s: U256,
+    // Undocumented extra fields.
+    pub source_hash: Digest,
+    pub mint: U256,
+    pub deposit_receipt_version: U256,
 }
 
 /// A validator withdrawal.
@@ -649,9 +696,10 @@ pub struct Block {
     #[serde(with = "serialization::bytes")]
     pub extra_data: Vec<u8>,
     /// The mix hash.
+    #[serde(default)]
     pub mix_hash: Digest,
     /// The nonce.
-    pub nonce: BlockNonce,
+    pub nonce: Option<BlockNonce>,
     /// The total difficulty.
     pub total_difficulty: U256,
     /// The base fee per gas.
@@ -1186,5 +1234,46 @@ impl Debug for TransactionReceipt {
             .field("logs_bloom", &self.logs_bloom)
             .field("status", &self.status)
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signed_tx_serialization() {
+        let json_str = r#"{
+                        "blockHash": "0xfc70e073ec6e1bb7f387698e4be418d7b1ff2216f625cdf41e1b80fb08029ef5",
+                        "blockNumber": "0x112",
+                        "from": "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001",
+                        "gas": "0xf4240",
+                        "gasPrice": "0x0",
+                        "hash": "0x13a644af4f64ce801dcd57faa823e8952f2290b810fdd31995dda62977ed3df1",
+                        "input": "0x015d8eb90000000000000000000000000000000000000000000000000000000001267f330000000000000000000000000000000000000000000000000000000065da6073000000000000000000000000000000000000000000000000000000075d3f861097c24796a4f639846a6a3ea3a59c11de8d89e11f551bae8feca9271a78926d420000000000000000000000000000000000000000000000000000000000000004000000000000000000000000415c8893d514f9bc5211d36eeda4183226b84aa700000000000000000000000000000000000000000000000000000000000000bc00000000000000000000000000000000000000000000000000000000000a6fe0",
+                        "nonce": "0x111",
+                        "to": "0x4200000000000000000000000000000000000015",
+                        "transactionIndex": "0x0",
+                        "value": "0x0",
+                        "type": "0x7e",
+                        "v": "0x0",
+                        "r": "0x0",
+                        "s": "0x0",
+                        "sourceHash": "0x5a1b66228a26547e2ce6fe1aa734d2c34e062e42ccd5710463e6987890f1ad5d",
+                        "mint": "0x0",
+                        "depositReceiptVersion": "0x1"
+                      }"#;
+        let result: Result<SignedTransaction, serde_json::Error> = serde_json::from_str(json_str);
+        println!("{:?}", result);
+        assert!(result.is_ok());
+
+        if let Ok(transaction) = result {
+            match transaction {
+                SignedTransaction::BlastSystemTx(_tx) => {
+                    // Could perform further checks on `tx` if needed
+                }
+                _ => panic!("Deserialized to the wrong variant of SignedTransaction"),
+            }
+        }
     }
 }

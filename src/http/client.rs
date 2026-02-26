@@ -2,15 +2,14 @@
 
 use crate::{
     jsonrpc::{
-        self,
+        self, JsonError,
         batch::{self, Batch},
-        JsonError,
     },
     method::Method,
     types::Empty,
 };
 use reqwest::{StatusCode, Url};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::{env, sync::Arc};
 use thiserror::Error;
 

@@ -5,7 +5,7 @@
 //! requiring to re-export the [`serde_json`] crate.
 
 use crate::method::Method;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{
     fmt::{self, Debug, Display, Formatter},
     str::FromStr,

@@ -5,8 +5,8 @@ mod value;
 
 pub use self::value::{JsonError, Value};
 use serde::{
-    de::{self, Deserializer},
     Deserialize, Serialize, Serializer,
+    de::{self, Deserializer},
 };
 use std::{
     borrow::Cow,
@@ -233,7 +233,7 @@ impl<'de> Deserialize<'de> for Response {
                         (Some(result), _) => Ok(result),
                         (None, Some(error)) => Err(error),
                         (None, None) => {
-                            return Err(de::Error::custom("missing 'result' or 'error' field"))
+                            return Err(de::Error::custom("missing 'result' or 'error' field"));
                         }
                     },
                     id,
@@ -354,9 +354,8 @@ impl From<ErrorCode> for i32 {
 mod tests {
     use super::*;
     use crate::{
-        eth,
+        eth, net,
         types::{BlockId, Empty, TransactionCall},
-        web3,
     };
     use ethprim::address;
     use hex_literal::hex;
@@ -385,18 +384,18 @@ mod tests {
     #[test]
     fn calls() {
         let version = call(
-            web3::ClientVersion,
+            net::Version,
             Empty,
             roundtrip(
                 json!({
-                    "method": "web3_clientVersion",
+                    "method": "net_version",
                     "params": [],
                 }),
-                json!("geth"),
+                json!("42"),
             ),
         )
         .unwrap();
-        assert_eq!(version, "geth");
+        assert_eq!(version, 42);
 
         let output = call(
             eth::Call,

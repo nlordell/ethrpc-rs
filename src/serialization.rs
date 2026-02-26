@@ -2,7 +2,7 @@
 
 #![allow(dead_code)]
 
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Serialize a fixed size `[u8; N]`.
 pub mod bytearray {

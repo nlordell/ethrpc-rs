@@ -3,9 +3,9 @@
 use crate::{debug, serialization};
 use ethprim::AsU256 as _;
 use serde::{
+    Deserialize, Serialize,
     de::{self, Deserializer},
     ser::Serializer,
-    Deserialize, Serialize,
 };
 use std::{
     collections::HashMap,

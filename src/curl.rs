@@ -2,16 +2,15 @@
 
 use crate::{
     jsonrpc::{
-        self,
+        self, JsonError,
         batch::{self, Batch},
-        JsonError,
     },
     method::Method,
     types::Empty,
 };
 pub use curl;
 use curl::easy::{Easy, List};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::{
     cell::RefCell,
     env,

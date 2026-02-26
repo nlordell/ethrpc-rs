@@ -38,7 +38,7 @@ impl Serialize for Empty {
     }
 }
 
-/// An Ethereum block specifier.
+/// Block number or tag.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BlockSpec {
@@ -72,7 +72,7 @@ impl From<BlockTag> for BlockSpec {
     }
 }
 
-/// An Ethereum block id.
+/// Block number, tag, or block hash.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BlockId {
@@ -117,7 +117,7 @@ impl From<BlockSpec> for BlockId {
     }
 }
 
-/// An Ethereum block tag.
+/// Block tag.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BlockTag {
@@ -139,7 +139,7 @@ pub enum BlockTag {
     Pending,
 }
 
-/// Transaction information to include with a block.
+/// Whether block transactions should be hydrated.
 #[derive(Clone, Copy, Debug, Default)]
 pub enum Hydrated {
     /// Only fetch transaction hashes for blocks.
@@ -491,10 +491,13 @@ impl Debug for SignedEip4844Transaction {
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Withdrawal {
+    /// Withdrawal index.
     #[serde(with = "serialization::num")]
     pub index: u64,
+    /// Validator index.
     #[serde(with = "serialization::num")]
     pub validator_index: u64,
+    /// Withdrawal amount.
     #[serde(with = "serialization::num")]
     pub amount: u128,
 }
@@ -547,7 +550,7 @@ pub struct Block {
     /// Blob gas used.
     #[serde(default)]
     pub blob_gas_used: U256,
-    /// Blob gas used.
+    /// Excess blob gas.
     #[serde(default)]
     pub excess_blob_gas: U256,
     /// Parent beacon block root.
@@ -602,6 +605,7 @@ impl Debug for Block {
 #[serde(rename_all = "camelCase")]
 pub struct TransactionCall {
     /// The transaction type.
+    #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<TransactionCallKind>,
     /// The transaction nonce.
@@ -625,21 +629,21 @@ pub struct TransactionCall {
         with = "serialization::option_bytes"
     )]
     pub input: Option<Vec<u8>>,
-    /// Gas price willing to be paid by the sender.
+    /// The gas price willing to be paid by the sender in wei.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gas_price: Option<U256>,
-    /// Maximum fee per gas the sender is willing to pay to miners in wei
+    /// Maximum fee per gas the sender is willing to pay to miners in wei.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_priority_fee_per_gas: Option<U256>,
-    /// The maximum total fee per gas the sender is willing to pay, including
-    /// the network (A.K.A. base) fee and miner (A.K.A priority) fee.
+    /// The maximum total fee per gas the sender is willing to pay (includes
+    /// the network / base fee and miner / priority fee) in wei.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_fee_per_gas: Option<U256>,
     /// The maximum total fee per gas the sender is willing to pay for blob gas
     /// in wei.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_fee_per_blob_gas: Option<U256>,
-    /// State access list.
+    /// EIP-2930 access list.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_list: Option<AccessList>,
     /// List of versioned blob hashes associated with the transaction's EIP-4844
@@ -680,48 +684,24 @@ impl Debug for TransactionCall {
 }
 
 /// Ethereum transaction kind.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[repr(u8)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub enum TransactionCallKind {
     /// Legacy transaction type.
     #[default]
-    Legacy = 0,
+    #[serde(rename = "0x0")]
+    Legacy,
     /// An EIP-2930 transaction type.
-    Eip2930 = 1,
+    #[serde(rename = "0x1")]
+    Eip2930,
     /// An EIP-1559 transaction type.
-    Eip1559 = 2,
+    #[serde(rename = "0x2")]
+    Eip1559,
     /// An EIP-4844 transaction type.
-    Eip4844 = 3,
+    #[serde(rename = "0x3")]
+    Eip4844,
 }
 
-impl Serialize for TransactionCallKind {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        (*self as u8).as_u256().serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for TransactionCallKind {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = U256::deserialize(deserializer)?;
-        match u8::try_from(value) {
-            Ok(0) => Ok(Self::Legacy),
-            Ok(1) => Ok(Self::Eip2930),
-            Ok(2) => Ok(Self::Eip1559),
-            Ok(3) => Ok(Self::Eip4844),
-            _ => Err(de::Error::custom(format!(
-                "invalid transaction type {value}"
-            ))),
-        }
-    }
-}
-
-/// An access list.
+/// Access list.
 pub type AccessList = Vec<AccessListEntry>;
 
 /// Access list entry.
@@ -735,12 +715,12 @@ pub struct AccessListEntry {
 }
 
 /// State overrides.
-pub type StateOverrides = HashMap<Address, StateOverride>;
+pub type StateOverrides = HashMap<Address, AccountOverride>;
 
-/// State override object.
+/// Details of an account to be overridden.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct StateOverride {
+pub struct AccountOverride {
     /// Fake balance to set for the account before executing the call.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub balance: Option<U256>,
@@ -763,9 +743,9 @@ pub struct StateOverride {
     pub state_diff: Option<HashMap<U256, U256>>,
 }
 
-/// The blocks to fetch logs for.
+/// Filter block selector.
 #[derive(Clone, Copy, Debug)]
-pub enum LogBlocks {
+pub enum LogFilterBlocks {
     /// An inclusive block range to include logs for.
     Range { from: BlockSpec, to: BlockSpec },
     /// An exact block hash to query logs for. See
@@ -773,7 +753,7 @@ pub enum LogBlocks {
     Hash(Digest),
 }
 
-impl Default for LogBlocks {
+impl Default for LogFilterBlocks {
     fn default() -> Self {
         Self::Range {
             from: BlockSpec::default(),
@@ -837,7 +817,7 @@ where
 #[derive(Clone, Debug, Default)]
 pub struct LogFilter {
     /// The blocks to fetch logs for.
-    pub blocks: LogBlocks,
+    pub blocks: LogFilterBlocks,
     /// The contract addresses to fetch logs for.
     pub address: LogFilterValue<Address>,
     /// The log topics to filter for.
@@ -868,13 +848,13 @@ impl Serialize for LogFilter {
         }
 
         let value = match self.blocks {
-            LogBlocks::Range { from, to } => Value::Range {
+            LogFilterBlocks::Range { from, to } => Value::Range {
                 from_block: from,
                 to_block: to,
                 address: &self.address,
                 topics: &self.topics,
             },
-            LogBlocks::Hash(hash) => Value::Hash {
+            LogFilterBlocks::Hash(hash) => Value::Hash {
                 block_hash: hash,
                 address: &self.address,
                 topics: &self.topics,
@@ -915,7 +895,7 @@ impl<'de> Deserialize<'de> for LogFilter {
                 address,
                 topics,
             } => Ok(Self {
-                blocks: LogBlocks::Range {
+                blocks: LogFilterBlocks::Range {
                     from: from_block,
                     to: to_block,
                 },
@@ -927,7 +907,7 @@ impl<'de> Deserialize<'de> for LogFilter {
                 address,
                 topics,
             } => Ok(Self {
-                blocks: LogBlocks::Hash(block_hash),
+                blocks: LogFilterBlocks::Hash(block_hash),
                 address,
                 topics,
             }),
@@ -1054,7 +1034,7 @@ pub enum TransactionReceiptKind {
 
 impl Debug for TransactionReceipt {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_struct("Log")
+        f.debug_struct("TransactionReceipt")
             .field("kind", &self.kind)
             .field("transaction_hash", &self.transaction_hash)
             .field("transaction_index", &self.transaction_index)

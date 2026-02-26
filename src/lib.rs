@@ -25,11 +25,12 @@ module! {
         pub struct BlockNumber as "eth_blockNumber"
             Empty => U256;
 
-        /// Simulates a transaction without adding it to the blockchain.
+        /// Executes a new message call immediately without creating a
+        /// transaction on the block chain.
         pub struct Call as "eth_call"
             (TransactionCall, BlockId) => Vec<u8> [serialization::bytes];
 
-        /// Returns the chain ID of the current network
+        /// Returns the chain ID of the current network.
         pub struct ChainId as "eth_chainId"
             Empty => U256;
 
@@ -72,7 +73,7 @@ module! {
         pub struct GetCode as "eth_getCode"
             (Address, BlockId) => Vec<u8> [serialization::bytes];
 
-        /// Returns a collection of all logs matching the given filter.
+        /// Returns an array of all logs matching the specified filter.
         pub struct GetLogs as "eth_getLogs"
             (LogFilter,) => Vec<Log>;
 
@@ -90,12 +91,17 @@ module! {
         pub struct GetTransactionByBlockNumberAndIndex as "eth_getTransactionByBlockNumberAndIndex"
             (BlockSpec, U256) => Option<SignedTransaction>;
 
-        /// Returns information about a transaction requested by transaction
+        /// Returns the information about a transaction requested by transaction
         /// hash.
         pub struct GetTransactionByHash as "eth_getTransactionByHash"
             (Digest,) => Option<SignedTransaction>;
 
-        /// Returns the value from a storage position at a given address.
+        /// Returns the nonce of an account in the state.
+        ///
+        /// NOTE: The name eth_getTransactionCount reflects the historical fact
+        /// that an account's nonce and sent transaction count were the same.
+        /// After the Pectra fork, with the inclusion of EIP-7702, this is no
+        /// longer true.
         pub struct GetTransactionCount as "eth_getTransactionCount"
             (Address, Option<BlockId>) => U256;
 
@@ -117,12 +123,14 @@ module! {
         pub struct MaxPriorityFeePerGas as "eth_maxPriorityFeePerGas"
             Empty => U256;
 
-        /// Creates a filter in the node, to notify when a new block arrives.
+        /// Creates a filter in the node, allowing for later polling.
+        /// Registers client interest in new blocks, and returns an identifier.
         pub struct NewBlockFilter as "eth_newBlockFilter"
             Empty => U256;
 
-        /// Creates a filter in the node, to notify when new pending
-        /// transactions arrive.
+        /// Creates a filter in the node, allowing for later polling.
+        /// Registers client interest in new transactions, and returns an
+        /// identifier.
         pub struct NewPendingTransactionFilter as "eth_newPendingTransactionFilter"
             Empty => U256;
     }

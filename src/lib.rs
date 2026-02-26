@@ -45,7 +45,7 @@ module! {
 
         /// Returns the balance of the account of given address.
         pub struct GetBalance as "eth_getBalance"
-            (Address, Option<BlockId>) => U256;
+            (Address, BlockId) => U256;
 
         /// Returns information about a block by hash.
         pub struct GetBlockByHash as "eth_getBlockByHash"
@@ -57,7 +57,7 @@ module! {
 
         /// Returns the receipts of a block by number or hash.
         pub struct GetBlockReceipts as "eth_getBlockReceipts"
-            (BlockSpec,) => Option<Vec<TransactionReceipt>>;
+            (BlockId,) => Option<Vec<TransactionReceipt>>;
 
         /// Returns the number of transactions in a block from a block matching
         /// the given block hash.
@@ -79,7 +79,7 @@ module! {
 
         /// Returns the value from a storage position at a given address.
         pub struct GetStorageAt as "eth_getStorageAt"
-            (Address, U256, Option<BlockId>) => [u8; 32] [serialization::bytearray];
+            (Address, U256, BlockId) => [u8; 32] [serialization::bytearray];
 
         /// Returns information about a transaction by block hash and
         /// transaction index position.
@@ -103,7 +103,7 @@ module! {
         /// After the Pectra fork, with the inclusion of EIP-7702, this is no
         /// longer true.
         pub struct GetTransactionCount as "eth_getTransactionCount"
-            (Address, Option<BlockId>) => U256;
+            (Address, BlockId) => U256;
 
         /// Returns the receipt of a transaction by transaction hash.
         pub struct GetTransactionReceipt as "eth_getTransactionReceipt"

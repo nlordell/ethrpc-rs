@@ -19,6 +19,15 @@ pub use ethprim::{Address, Digest, I256, U256};
 /// Empty JSON RPC parameters.
 pub struct Empty;
 
+impl Serialize for Empty {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        [(); 0].serialize(serializer)
+    }
+}
+
 impl<'de> Deserialize<'de> for Empty {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -26,15 +35,6 @@ impl<'de> Deserialize<'de> for Empty {
     {
         <[(); 0]>::deserialize(deserializer)?;
         Ok(Empty)
-    }
-}
-
-impl Serialize for Empty {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        [(); 0].serialize(serializer)
     }
 }
 
@@ -137,6 +137,24 @@ pub enum BlockTag {
     /// A sample next block built by the client on top of [`BlockTag::Latest`]
     /// and containing the set of transactions usually taken from local mempool.
     Pending,
+}
+
+/// A log, block, or transaction filter identifier.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct FilterId(U256);
+
+impl FilterId {
+    /// Creates a filter from a raw ID. The caller must make sure that this is a
+    /// valid ID, otherwise filter ID RPC methods will fail.
+    pub fn from_raw(value: U256) -> Self {
+        Self(value)
+    }
+
+    /// Gets the raw underlying ID for the filter.
+    pub fn into_raw(self) -> U256 {
+        self.0
+    }
 }
 
 /// Whether block transactions should be hydrated.
@@ -661,15 +679,17 @@ impl Debug for SignedEip7702Transaction {
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Withdrawal {
+    /// Recipient address.
+    pub address: Address,
+    /// Withdrawal amount.
+    #[serde(with = "serialization::num")]
+    pub amount: u64,
     /// Withdrawal index.
     #[serde(with = "serialization::num")]
     pub index: u64,
     /// Validator index.
     #[serde(with = "serialization::num")]
     pub validator_index: u64,
-    /// Withdrawal amount.
-    #[serde(with = "serialization::num")]
-    pub amount: u128,
 }
 
 /// An Ethereum block object.
@@ -774,14 +794,14 @@ impl Debug for Block {
     }
 }
 
-/// An Ethereum transaction call object.
+/// An Ethereum transaction object.
 #[derive(Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TransactionCall {
+pub struct Transaction {
     /// The transaction type.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub kind: Option<TransactionCallKind>,
+    pub kind: Option<TransactionKind>,
     /// The transaction nonce.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nonce: Option<U256>,
@@ -830,7 +850,7 @@ pub struct TransactionCall {
     /// Raw blob data.
     #[serde(
         skip_serializing_if = "Option::is_none",
-        with = "serialization::option_vec_vec_bytes"
+        with = "serialization::option_vec_bytes"
     )]
     pub blobs: Option<Vec<Vec<u8>>>,
     /// Chain ID that the transaction is valid on.
@@ -838,9 +858,9 @@ pub struct TransactionCall {
     pub chain_id: Option<U256>,
 }
 
-impl Debug for TransactionCall {
+impl Debug for Transaction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_struct("TransactionCall")
+        f.debug_struct("Transaction")
             .field("kind", &self.kind)
             .field("nonce", &self.nonce)
             .field("to", &self.to)
@@ -863,7 +883,7 @@ impl Debug for TransactionCall {
 
 /// Ethereum transaction kind.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub enum TransactionCallKind {
+pub enum TransactionKind {
     /// Legacy transaction type.
     #[default]
     #[serde(rename = "0x0")]
@@ -895,6 +915,253 @@ pub struct AccessListEntry {
     pub storage_keys: Vec<U256>,
 }
 
+/// Created access list result.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccessListResult {
+    /// Access list.
+    pub access_list: AccessList,
+    /// Error.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Gas used.
+    pub gas_used: U256,
+}
+
+/// Fee history result.
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeeHistoryResult {
+    /// Lowest number block of returned range.
+    pub oldest_block: U256,
+    /// An array of block base fees per gas. This includes the next block after
+    /// the newest of the returned range, because this value can be derived from
+    /// the newest block. Zeroes are returned for pre-EIP-1559 blocks.
+    pub base_fee_per_gas: Vec<U256>,
+    /// An array of block gas used ratios. These are calculated as the ratio of
+    /// `gas-used` and `gas_limit`.
+    pub gas_used_ratio: Vec<f64>,
+    /// A two-dimensional array of effective priority fees per gas at the
+    /// requested block percentiles.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reward: Option<Vec<Vec<U256>>>,
+    /// An array of block base fees per blob gas. This includes the next block
+    /// after the newest of the returned range, because this value can be
+    /// derived from the newest block. Zeroes are returned for pre-EIP-4844
+    /// blocks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_fee_per_blob_gas: Option<Vec<U256>>,
+    /// An array of block blob gas used ratios. These are calculated as the
+    /// ratio of `blob_gas_used` and the max blob gas per block.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blob_gas_used_ratio: Option<Vec<f64>>,
+}
+
+/// Arguments for `eth_simulateV1`.
+#[derive(Clone, Default, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SimulatePayload {
+    /// Definition of blocks that can contain calls and overrides.
+    pub block_state_calls: Vec<BlockStateCall>,
+    /// Adds ETH transfers as ERC20 transfer events to the logs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace_transfers: Option<bool>,
+    /// Enables execution validation similar to full transaction execution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validation: Option<bool>,
+    /// When true, full transaction objects are returned instead of hashes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub return_full_transactions: Option<bool>,
+}
+
+/// A block-state call group for `eth_simulateV1`.
+#[derive(Clone, Default, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockStateCall {
+    /// Block overrides for this simulated block.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_overrides: Option<BlockOverrides>,
+    /// State overrides for this simulated block.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state_overrides: Option<StateOverrides>,
+    /// Transactions to execute at this simulated block/state.
+    pub calls: Vec<Transaction>,
+}
+
+/// Context fields related to the block being executed.
+#[derive(Clone, Default, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockOverrides {
+    /// Block number.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub number: Option<u64>,
+    /// The previous value of randomness beacon.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_randao: Option<U256>,
+    /// Block timestamp.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub time: Option<u64>,
+    /// Gas limit.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub gas_limit: Option<u64>,
+    /// Fee recipient (also known as coinbase).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fee_recipient: Option<Address>,
+    /// Withdrawals made by validators.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub withdrawals: Option<Vec<Withdrawal>>,
+    /// Base fee per unit of gas.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_fee_per_gas: Option<U256>,
+    /// Base fee per unit of blob gas.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub blob_base_fee: Option<u64>,
+}
+
+/// Result of a simulated block.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockResult {
+    /// Simulated block data.
+    #[serde(flatten)]
+    pub block: Block,
+    /// Per-call results for this simulated block.
+    pub calls: Vec<CallResult>,
+}
+
+/// A simulated call result.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "status")]
+pub enum CallResult {
+    /// A failed simulated call result.
+    #[serde(rename = "0x0")]
+    Failure(CallResultFailure),
+    /// A successful simulated call result.
+    #[serde(rename = "0x1")]
+    Success(CallResultSuccess),
+}
+
+/// Result of a successful call in `eth_simulateV1`.
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallResultSuccess {
+    /// Return data.
+    #[serde(with = "serialization::bytes")]
+    pub return_data: Vec<u8>,
+    /// Gas used.
+    #[serde(with = "serialization::num")]
+    pub gas_used: u64,
+    /// Return logs.
+    pub logs: Vec<Log>,
+}
+
+impl Debug for CallResultSuccess {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("CallResultSuccess")
+            .field("return_data", &debug::Hex(&self.return_data))
+            .field("gas_used", &self.gas_used)
+            .field("logs", &self.logs)
+            .finish()
+    }
+}
+
+/// Result of a failed call in `eth_simulateV1`.
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallResultFailure {
+    /// Return data.
+    #[serde(with = "serialization::bytes")]
+    pub return_data: Vec<u8>,
+    /// Gas used.
+    #[serde(with = "serialization::num")]
+    pub gas_used: u64,
+    /// Failure details.
+    pub error: CallResultError,
+}
+
+impl Debug for CallResultFailure {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("SimulatedCallFailure")
+            .field("return_data", &debug::Hex(&self.return_data))
+            .field("gas_used", &self.gas_used)
+            .field("error", &self.error)
+            .finish()
+    }
+}
+
+/// Error details for a failed simulated call.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct CallResultError {
+    /// Error code.
+    pub code: i64,
+    /// Error message.
+    pub message: String,
+}
+
+/// Syncing progress.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncingProgress {
+    /// Starting block.
+    pub starting_block: U256,
+    /// Current block.
+    pub current_block: U256,
+    /// Highest block.
+    pub highest_block: U256,
+}
+
+/// Syncing status.
+pub enum SyncingStatus {
+    /// Syncing is in progress.
+    Syncing(SyncingProgress),
+    /// Not syncing.
+    NotSyncing,
+}
+
+impl Serialize for SyncingStatus {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Syncing(progress) => SyncingProgress::serialize(progress, serializer),
+            Self::NotSyncing => serializer.serialize_bool(false),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SyncingStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Inner {
+            Syncing(SyncingProgress),
+            NotSyncing(bool),
+        }
+
+        match Inner::deserialize(deserializer)? {
+            Inner::Syncing(progress) => Ok(Self::Syncing(progress)),
+            Inner::NotSyncing(false) => Ok(Self::NotSyncing),
+            Inner::NotSyncing(true) => Err(de::Error::custom("unexpected `true` value")),
+        }
+    }
+}
+
 /// A transaction authorization list.
 pub type AuthorizationList = Vec<Authorization>;
 
@@ -917,18 +1184,21 @@ pub struct Authorization {
 }
 
 /// State overrides.
-pub type StateOverrides = HashMap<Address, AccountOverride>;
+pub type StateOverrides = HashMap<Address, AccountOverrides>;
 
 /// Details of an account to be overridden.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AccountOverride {
+pub struct AccountOverrides {
     /// Fake balance to set for the account before executing the call.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub balance: Option<U256>,
     /// Fake nonce to set for the account before executing the call.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nonce: Option<U256>,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub nonce: Option<u64>,
     /// Fake EVM bytecode to inject into the account before executing the call.
     #[serde(
         skip_serializing_if = "Option::is_none",
@@ -943,6 +1213,25 @@ pub struct AccountOverride {
     /// storage before executing the call.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<HashMap<U256, U256>>,
+    /// Moves a precompile from its canonical address to this address.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub move_precompile_to_address: Option<Address>,
+}
+
+impl Debug for AccountOverrides {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("AccountOverrides")
+            .field("balance", &self.balance)
+            .field("nonce", &self.nonce)
+            .field("code", &self.code.as_deref().map(debug::Hex))
+            .field("state", &self.state)
+            .field("state_diff", &self.state_diff)
+            .field(
+                "move_precompile_to_address",
+                &self.move_precompile_to_address,
+            )
+            .finish()
+    }
 }
 
 /// Filter block selector.
@@ -1024,6 +1313,75 @@ pub struct LogFilter {
     pub address: LogFilterValue<Address>,
     /// The log topics to filter for.
     pub topics: ArrayVec<LogFilterValue<Digest>, 4>,
+}
+
+/// Filter changes.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum FilterChanges {
+    /// New block or transaction hashes.
+    Hashes(Vec<Digest>),
+    /// New logs.
+    Logs(Vec<Log>),
+}
+
+/// Storage proof.
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageProof {
+    /// Key.
+    pub key: U256,
+    /// Value.
+    pub value: U256,
+    /// Proof.
+    #[serde(with = "serialization::vec_bytes")]
+    pub proof: Vec<Vec<u8>>,
+}
+
+impl Debug for StorageProof {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("StorageProof")
+            .field("key", &self.key)
+            .field("value", &self.value)
+            .field("proof", &debug::HexSlice(&self.proof))
+            .finish()
+    }
+}
+
+/// Account proof.
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountProof {
+    /// Address.
+    pub address: Address,
+    /// Account proof.
+    #[serde(with = "serialization::vec_bytes")]
+    pub account_proof: Vec<Vec<u8>>,
+    /// Balance.
+    pub balance: U256,
+    /// Code hash.
+    pub code_hash: Digest,
+    /// Nonce.
+    #[serde(with = "serialization::num")]
+    pub nonce: u64,
+    /// Storage hash.
+    pub storage_hash: Digest,
+    /// Storage proofs.
+    pub storage_proof: Vec<StorageProof>,
+}
+
+impl Debug for AccountProof {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("AccountProof")
+            .field("address", &self.address)
+            .field("account_proof", &debug::HexSlice(&self.account_proof))
+            .field("balance", &self.balance)
+            .field("code_hash", &self.code_hash)
+            .field("nonce", &self.nonce)
+            .field("storage_hash", &self.storage_hash)
+            .field("storage_proof", &self.storage_proof)
+            .finish()
+    }
 }
 
 impl Serialize for LogFilter {

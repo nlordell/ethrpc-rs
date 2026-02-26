@@ -134,8 +134,40 @@ pub mod option_bytes {
     }
 }
 
+/// Serialize a `Vec<Vec<u8>>`
+pub mod vec_bytes {
+    use super::{
+        bytes::{decode, encode},
+        *,
+    };
+    use std::{borrow::Cow, str};
+
+    #[doc(hidden)]
+    pub fn serialize<S>(value: &[Vec<u8>], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        value
+            .iter()
+            .map(|bytes| encode(bytes.as_ref()))
+            .collect::<Vec<_>>()
+            .serialize(serializer)
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Vec<u8>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Vec::<Cow<str>>::deserialize(deserializer)?
+            .into_iter()
+            .map(|item| decode(&item))
+            .collect()
+    }
+}
+
 /// Serialize an `Option<Vec<Vec<u8>>>`
-pub mod option_vec_vec_bytes {
+pub mod option_vec_bytes {
     use super::{
         bytes::{decode, encode},
         *,
@@ -232,5 +264,90 @@ pub mod num {
         D: Deserializer<'de>,
     {
         T::from_hex(&Cow::<str>::deserialize(deserializer)?)
+    }
+}
+
+/// Serialize optional `0x` prefixed hex numbers.
+pub mod option_num {
+    use super::{num::Num, *};
+    use std::borrow::Cow;
+
+    #[doc(hidden)]
+    pub fn serialize<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Num,
+        S: Serializer,
+    {
+        match value {
+            Some(value) => serializer.serialize_some(&value.to_hex()),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+    where
+        T: Num,
+        D: Deserializer<'de>,
+    {
+        match Option::<Cow<str>>::deserialize(deserializer)? {
+            Some(value) => Ok(Some(T::from_hex(&value)?)),
+            None => Ok(None),
+        }
+    }
+}
+
+/// Serialize a single bytes parameter as a one-item JSON RPC params array.
+pub mod param_eth_send_raw_transaction {
+    use super::{
+        bytes::{decode, encode},
+        *,
+    };
+    use std::{borrow::Cow, str};
+
+    #[doc(hidden)]
+    pub fn serialize<S>(value: &(Vec<u8>,), serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        (encode(&value.0),).serialize(serializer)
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<(Vec<u8>,), D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let (hex,): (Cow<str>,) = Deserialize::deserialize(deserializer)?;
+        let bytes = decode(&hex)?;
+        Ok((bytes,))
+    }
+}
+
+/// Serialize `(address, bytes)` as JSON RPC params.
+pub mod param_eth_sign {
+    use super::{
+        bytes::{decode, encode},
+        *,
+    };
+    use ethprim::Address;
+    use std::{borrow::Cow, str};
+
+    #[doc(hidden)]
+    pub fn serialize<S>(value: &(Address, Vec<u8>), serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let (address, bytes) = value;
+        (address, encode(bytes)).serialize(serializer)
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<(Address, Vec<u8>), D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let (address, hex): (Address, Cow<str>) = Deserialize::deserialize(deserializer)?;
+        Ok((address, decode(&hex)?))
     }
 }

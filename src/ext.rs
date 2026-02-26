@@ -8,6 +8,6 @@ module! {
         /// Simulates a transaction without adding it to the blockchain with
         /// support for state overrides.
         pub struct Call as "eth_call"
-            (TransactionCall, BlockId, StateOverrides) => Vec<u8> [serialization::bytes];
+            (Transaction, BlockId, StateOverrides) => Vec<u8> [serialization::bytes];
     }
 }

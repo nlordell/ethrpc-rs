@@ -355,7 +355,7 @@ mod tests {
     use super::*;
     use crate::{
         eth, net,
-        types::{BlockId, Empty, TransactionCall},
+        types::{BlockId, Empty, Transaction},
     };
     use ethprim::address;
     use hex_literal::hex;
@@ -400,7 +400,7 @@ mod tests {
         let output = call(
             eth::Call,
             (
-                TransactionCall {
+                Transaction {
                     to: Some(address!("0x9008D19f58AAbD9eD0D60971565AA8510560ab41")),
                     input: Some(hex!("f698da25").to_vec()),
                     ..Default::default()

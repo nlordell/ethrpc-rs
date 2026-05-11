@@ -308,7 +308,7 @@ pub struct SignedLegacyTransaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
+    #[serde(default, with = "serialization::num")]
     pub block_timestamp: u64,
     /// Address of transaction sender.
     pub from: Address,
@@ -376,7 +376,7 @@ pub struct SignedEip2930Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
+    #[serde(default, with = "serialization::num")]
     pub block_timestamp: u64,
     /// Address of transaction sender.
     pub from: Address,
@@ -447,7 +447,7 @@ pub struct SignedEip1559Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
+    #[serde(default, with = "serialization::num")]
     pub block_timestamp: u64,
     /// Address of transaction sender.
     pub from: Address,
@@ -522,7 +522,7 @@ pub struct SignedEip4844Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
+    #[serde(default, with = "serialization::num")]
     pub block_timestamp: u64,
     /// Address of transaction sender.
     pub from: Address,
@@ -604,7 +604,7 @@ pub struct SignedEip7702Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
+    #[serde(default, with = "serialization::num")]
     pub block_timestamp: u64,
     /// Address of transaction sender.
     pub from: Address,
@@ -730,6 +730,7 @@ pub struct Block {
     /// The nonce.
     pub nonce: BlockNonce,
     /// The total difficulty.
+    #[serde(default)]
     pub total_difficulty: U256,
     /// The base fee per gas.
     #[serde(default)]
@@ -819,6 +820,8 @@ pub struct Transaction {
     pub value: Option<U256>,
     /// The calldata associated with the transaction.
     #[serde(
+        alias = "data",
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_bytes"
     )]
@@ -849,6 +852,7 @@ pub struct Transaction {
     pub blob_versioned_hashes: Option<Vec<Digest>>,
     /// Raw blob data.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_vec_bytes"
     )]
@@ -912,7 +916,7 @@ pub struct AccessListEntry {
     /// The address.
     pub address: Address,
     /// The storage keys.
-    pub storage_keys: Vec<U256>,
+    pub storage_keys: Vec<Digest>,
 }
 
 /// Created access list result.
@@ -933,6 +937,7 @@ pub struct AccessListResult {
 #[serde(rename_all = "camelCase")]
 pub struct FeeHistoryResult {
     /// Lowest number block of returned range.
+    #[serde(alias = "oldestblock")]
     pub oldest_block: U256,
     /// An array of block base fees per gas. This includes the next block after
     /// the newest of the returned range, because this value can be derived from
@@ -994,6 +999,7 @@ pub struct BlockStateCall {
 pub struct BlockOverrides {
     /// Block number.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_num"
     )]
@@ -1003,12 +1009,14 @@ pub struct BlockOverrides {
     pub prev_randao: Option<U256>,
     /// Block timestamp.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_num"
     )]
     pub time: Option<u64>,
     /// Gas limit.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_num"
     )]
@@ -1024,6 +1032,7 @@ pub struct BlockOverrides {
     pub base_fee_per_gas: Option<U256>,
     /// Base fee per unit of blob gas.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_num"
     )]
@@ -1195,12 +1204,14 @@ pub struct AccountOverrides {
     pub balance: Option<U256>,
     /// Fake nonce to set for the account before executing the call.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_num"
     )]
     pub nonce: Option<u64>,
     /// Fake EVM bytecode to inject into the account before executing the call.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_bytes"
     )]

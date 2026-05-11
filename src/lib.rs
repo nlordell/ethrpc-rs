@@ -14,6 +14,8 @@ pub mod method;
 mod bloom;
 mod debug;
 mod serialization;
+#[cfg(test)]
+mod tests;
 pub mod types;
 
 use self::types::*;
@@ -53,7 +55,7 @@ module! {
         /// Generates and returns an estimate of how much gas is necessary to
         /// allow the transaction to complete.
         pub struct EstimateGas as "eth_estimateGas"
-            (Transaction, BlockSpec) => U256;
+            (Transaction, Option<BlockSpec>) [serialization::param_eth_estimate_gas] => U256;
 
         /// Returns transaction base fee per gas and effective priority fee per
         /// gas for the requested/supported block range.
@@ -198,7 +200,7 @@ module! {
         /// without creating transactions on the block chain, optionally
         /// overriding block and state data.
         pub struct SimulateV1 as "eth_simulateV1"
-            (SimulatePayload, Option<BlockSpec>) => Vec<BlockResult>;
+            (SimulatePayload, Option<BlockSpec>) [serialization::param_eth_simulate_v1] => Vec<BlockResult>;
 
         /// Returns an object with data about the sync status or false.
         pub struct Syncing as "eth_syncing"

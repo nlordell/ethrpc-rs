@@ -351,3 +351,83 @@ pub mod param_eth_sign {
         Ok((address, decode(&hex)?))
     }
 }
+
+/// Serialize `(transaction, block)` as JSON RPC params for `eth_estimateGas`.
+pub mod param_eth_estimate_gas {
+    use super::*;
+    use crate::types::{BlockSpec, Transaction};
+
+    #[doc(hidden)]
+    pub fn serialize<S>(
+        value: &(Transaction, Option<BlockSpec>),
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value.1 {
+            Some(block) => (&value.0, block).serialize(serializer),
+            None => (&value.0,).serialize(serializer),
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<(Transaction, Option<BlockSpec>), D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Value {
+            One((Transaction,)),
+            Two((Transaction, BlockSpec)),
+        }
+
+        match Value::deserialize(deserializer)? {
+            Value::One((tx,)) => Ok((tx, None)),
+            Value::Two((tx, block)) => Ok((tx, Some(block))),
+        }
+    }
+}
+
+/// Serialize `(payload, block)` as JSON RPC params for `eth_simulateV1`.
+pub mod param_eth_simulate_v1 {
+    use super::*;
+    use crate::types::{BlockSpec, SimulatePayload};
+
+    #[doc(hidden)]
+    pub fn serialize<S>(
+        value: &(SimulatePayload, Option<BlockSpec>),
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match value.1 {
+            Some(block) => (&value.0, block).serialize(serializer),
+            None => (&value.0,).serialize(serializer),
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<(SimulatePayload, Option<BlockSpec>), D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Value {
+            One((SimulatePayload,)),
+            Two((SimulatePayload, BlockSpec)),
+        }
+
+        match Value::deserialize(deserializer)? {
+            Value::One((payload,)) => Ok((payload, None)),
+            Value::Two((payload, block)) => Ok((payload, Some(block))),
+        }
+    }
+}

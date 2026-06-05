@@ -1,6 +1,6 @@
 [package]
 name = "ethrpc"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Nicholas Rodrigues Lordello <n@lordello.net>"]
 edition = "2024"
 description = "Ethereum transport-agnositic JSON RPC implementation"

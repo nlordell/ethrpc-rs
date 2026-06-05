@@ -17,7 +17,16 @@ pub use arrayvec::ArrayVec;
 pub use ethprim::{Address, Digest, I256, U256};
 
 /// Empty JSON RPC parameters.
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub struct Empty;
+
+impl Debug for Empty {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_tuple("Empty")
+            .field(&[(); 0])
+            .finish()
+    }
+}
 
 impl Serialize for Empty {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

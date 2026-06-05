@@ -730,6 +730,7 @@ pub struct Block {
     /// The nonce.
     pub nonce: BlockNonce,
     /// The total difficulty.
+    #[serde(default)]
     pub total_difficulty: U256,
     /// The base fee per gas.
     #[serde(default)]
@@ -1162,6 +1163,62 @@ impl<'de> Deserialize<'de> for SyncingStatus {
     }
 }
 
+/// Client configuration and fork information as returned by `eth_config`.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Configuration {
+    /// The configuration of the currently active fork.
+    pub current: ForkConfiguration,
+    /// The configuration of the next scheduled fork, if any.
+    pub next: Option<ForkConfiguration>,
+    /// The configuration of the previously active fork, if any.
+    pub last: Option<ForkConfiguration>,
+}
+
+/// Configuration for a single fork.
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ForkConfiguration {
+    /// The Unix timestamp at which the fork activates.
+    pub activation_time: u64,
+    /// The blob parameters for the fork.
+    pub blob_schedule: BlobSchedule,
+    /// The chain ID.
+    pub chain_id: U256,
+    /// The EIP-6122 fork ID (`FORK_HASH`).
+    #[serde(with = "serialization::bytearray")]
+    pub fork_id: [u8; 4],
+    /// The precompiles active for the fork, keyed by name.
+    pub precompiles: HashMap<String, Address>,
+    /// The system contracts active for the fork, keyed by name.
+    pub system_contracts: HashMap<String, Address>,
+}
+
+impl Debug for ForkConfiguration {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.debug_struct("ForkConfig")
+            .field("activation_time", &self.activation_time)
+            .field("blob_schedule", &self.blob_schedule)
+            .field("chain_id", &self.chain_id)
+            .field("fork_id", &debug::Hex(&self.fork_id))
+            .field("precompiles", &self.precompiles)
+            .field("system_contracts", &self.system_contracts)
+            .finish()
+    }
+}
+
+/// The blob parameters for a fork.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlobSchedule {
+    /// The fraction used in the excess blob gas base fee update.
+    pub base_fee_update_fraction: u64,
+    /// The maximum number of blobs per block.
+    pub max: u64,
+    /// The target number of blobs per block.
+    pub target: u64,
+}
+
 /// A transaction authorization list.
 pub type AuthorizationList = Vec<Authorization>;
 
@@ -1383,6 +1440,12 @@ impl Debug for AccountProof {
             .finish()
     }
 }
+
+/// The storage slots requested per account.
+pub type StorageRequests = HashMap<Address, Vec<Digest>>;
+
+/// The storage slot values per account.
+pub type StorageValues = HashMap<Address, Vec<Digest>>;
 
 impl Serialize for LogFilter {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

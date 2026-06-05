@@ -36,7 +36,7 @@ module! {
         /// Executes a new message call immediately without creating a
         /// transaction on the block chain.
         pub struct Call as "eth_call"
-            (Transaction, BlockId) => Vec<u8> [serialization::bytes];
+            (Transaction, Option<BlockId>) => Vec<u8> [serialization::bytes];
 
         /// Returns the chain ID of the current network.
         pub struct ChainId as "eth_chainId"
@@ -46,6 +46,10 @@ module! {
         pub struct Coinbase as "eth_coinbase"
             Empty => Address;
 
+        /// Returns the client configuration and fork information.
+        pub struct Config as "eth_config"
+            Empty => Configuration;
+
         /// Generates an access list for a transaction.
         pub struct CreateAccessList as "eth_createAccessList"
             (Transaction, Option<BlockSpec>) => AccessListResult;
@@ -53,7 +57,7 @@ module! {
         /// Generates and returns an estimate of how much gas is necessary to
         /// allow the transaction to complete.
         pub struct EstimateGas as "eth_estimateGas"
-            (Transaction, BlockSpec) => U256;
+            (Transaction, Option<BlockSpec>) => U256;
 
         /// Returns transaction base fee per gas and effective priority fee per
         /// gas for the requested/supported block range.
@@ -119,6 +123,11 @@ module! {
         pub struct GetStorageAt as "eth_getStorageAt"
             (Address, U256, BlockId) => [u8; 32] [serialization::bytearray];
 
+        /// Returns the values from multiple storage positions for multiple
+        /// accounts.
+        pub struct GetStorageValues as "eth_getStorageValues"
+            (StorageRequests, BlockId) => StorageValues;
+
         /// Returns information about a transaction by block hash and
         /// transaction index position.
         pub struct GetTransactionByBlockHashAndIndex as "eth_getTransactionByBlockHashAndIndex"
@@ -146,16 +155,6 @@ module! {
         /// Returns the receipt of a transaction by transaction hash.
         pub struct GetTransactionReceipt as "eth_getTransactionReceipt"
             (Digest,) => Option<TransactionReceipt>;
-
-        /// Returns the number of uncles in a block from a block matching the
-        /// given block hash.
-        pub struct GetUncleCountByBlockHash as "eth_getUncleCountByBlockHash"
-            (Digest,) => Option<U256>;
-
-        /// Returns the number of uncles in a block from a block matching the
-        /// given block number.
-        pub struct GetUncleCountByBlockNumber as "eth_getUncleCountByBlockNumber"
-            (BlockSpec,) => Option<U256>;
 
         /// Returns the current maxPriorityFeePerGas per gas in wei.
         pub struct MaxPriorityFeePerGas as "eth_maxPriorityFeePerGas"

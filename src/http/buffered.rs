@@ -5,13 +5,11 @@
 
 use super::client::{Client, Error};
 use crate::{jsonrpc, method::Method, types::Empty};
-use futures::{
-    channel::{mpsc, oneshot},
-    stream::StreamExt as _,
-};
+use futures::StreamExt as _;
 use serde::Serialize;
 use std::{num::NonZeroUsize, sync::Arc, time::Duration};
-use tokio_stream::StreamExt as _;
+use tokio::sync::{mpsc, oneshot};
+use tokio_stream::{StreamExt as _, wrappers::UnboundedReceiverStream};
 
 /// A buffered JSON RPC HTTP client.
 pub struct Buffered {
@@ -28,7 +26,7 @@ impl Client {
     /// Returns a [`Buffered`] HTTP JSON RPC client.
     pub fn buffered(self, config: Configuration) -> Buffered {
         let client = Arc::new(self);
-        let (calls, receiver) = mpsc::unbounded();
+        let (calls, receiver) = mpsc::unbounded_channel();
 
         tokio::task::spawn(Buffered::background_worker(
             client.clone(),
@@ -52,7 +50,7 @@ impl Buffered {
         calls: mpsc::UnboundedReceiver<Call>,
         config: Configuration,
     ) {
-        calls
+        UnboundedReceiverStream::new(calls)
             .chunks_timeout(config.max_size, config.delay)
             .for_each_concurrent(
                 config.max_concurrent_requests.map(NonZeroUsize::get),
@@ -95,7 +93,7 @@ impl Buffered {
         async {
             let (sender, receiver) = oneshot::channel();
             self.calls
-                .unbounded_send(Call {
+                .send(Call {
                     request,
                     response: sender,
                 })

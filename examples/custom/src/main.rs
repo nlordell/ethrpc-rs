@@ -22,7 +22,7 @@ ethrpc::module! {
 
 /// Custom serialization logic for the custom RPC module.
 mod serialize_time {
-    use serde::{de, ser, Deserialize, Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer, de, ser};
     use std::time::{Duration, SystemTime};
 
     pub fn serialize<S>(value: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>

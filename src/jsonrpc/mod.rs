@@ -405,7 +405,7 @@ mod tests {
                     input: Some(hex!("f698da25").to_vec()),
                     ..Default::default()
                 },
-                BlockId::default(),
+                Some(BlockId::default()),
             ),
             roundtrip(
                 json!({

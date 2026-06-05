@@ -33,16 +33,16 @@ module! {
 
         /// Returns the number of most recent block.
         pub struct BlockNumber as "eth_blockNumber"
-            Empty => U256;
+            Empty => u64 [serialization::num];
 
         /// Executes a new message call immediately without creating a
         /// transaction on the block chain.
         pub struct Call as "eth_call"
-            (Transaction, Option<BlockId>) [serialization::param_pair_with_option] => Vec<u8> [serialization::bytes];
+            (Transaction, Option<BlockId>) [serialization::param::call_like] => Vec<u8> [serialization::bytes];
 
         /// Returns the chain ID of the current network.
         pub struct ChainId as "eth_chainId"
-            Empty => U256;
+            Empty => u64 [serialization::num];
 
         /// Returns the client coinbase address.
         pub struct Coinbase as "eth_coinbase"
@@ -54,17 +54,17 @@ module! {
 
         /// Generates an access list for a transaction.
         pub struct CreateAccessList as "eth_createAccessList"
-            (Transaction, Option<BlockSpec>) [serialization::param_pair_with_option] => AccessListResult;
+            (Transaction, Option<BlockSpec>) [serialization::param::call_like] => AccessListResult;
 
         /// Generates and returns an estimate of how much gas is necessary to
         /// allow the transaction to complete.
         pub struct EstimateGas as "eth_estimateGas"
-            (Transaction, Option<BlockSpec>) [serialization::param_pair_with_option] => U256;
+            (Transaction, Option<BlockSpec>) [serialization::param::call_like] => u64 [serialization::num];
 
         /// Returns transaction base fee per gas and effective priority fee per
         /// gas for the requested/supported block range.
         pub struct FeeHistory as "eth_feeHistory"
-            (U256, BlockSpec, Vec<f64>) => FeeHistoryResult;
+            (u64, BlockSpec, Vec<f64>) [serialization::param::fee_history] => FeeHistoryResult;
 
         /// Returns the current price per gas in wei.
         pub struct GasPrice as "eth_gasPrice"
@@ -89,12 +89,12 @@ module! {
         /// Returns the number of transactions in a block from a block matching
         /// the given block hash.
         pub struct GetBlockTransactionCountByHash as "eth_getBlockTransactionCountByHash"
-            (Digest,) => Option<U256>;
+            (Digest,) => Option<u64> [serialization::option_num];
 
         /// Returns the number of transactions in a block matching the given
         /// block number.
         pub struct GetBlockTransactionCountByNumber as "eth_getBlockTransactionCountByNumber"
-            (BlockSpec,) => Option<U256>;
+            (BlockSpec,) => Option<u64> [serialization::option_num];
 
         /// Returns code at a given address.
         pub struct GetCode as "eth_getCode"
@@ -133,12 +133,12 @@ module! {
         /// Returns information about a transaction by block hash and
         /// transaction index position.
         pub struct GetTransactionByBlockHashAndIndex as "eth_getTransactionByBlockHashAndIndex"
-            (Digest, U256) => Option<SignedTransaction>;
+            (Digest, u64) [serialization::param::get_transaction_by_block_and_index] => Option<SignedTransaction>;
 
         /// Returns information about a transaction by block number and
         /// transaction index position.
         pub struct GetTransactionByBlockNumberAndIndex as "eth_getTransactionByBlockNumberAndIndex"
-            (BlockSpec, U256) => Option<SignedTransaction>;
+            (BlockSpec, u64) [serialization::param::get_transaction_by_block_and_index] => Option<SignedTransaction>;
 
         /// Returns the information about a transaction requested by transaction
         /// hash.
@@ -152,7 +152,7 @@ module! {
         /// After the Pectra fork, with the inclusion of EIP-7702, this is no
         /// longer true.
         pub struct GetTransactionCount as "eth_getTransactionCount"
-            (Address, BlockId) => U256;
+            (Address, BlockId) => u64 [serialization::num];
 
         /// Returns the receipt of a transaction by transaction hash.
         pub struct GetTransactionReceipt as "eth_getTransactionReceipt"
@@ -181,7 +181,7 @@ module! {
 
         /// Submits a raw transaction.
         pub struct SendRawTransaction as "eth_sendRawTransaction"
-            (Vec<u8>,) [serialization::param_eth_send_raw_transaction] => Digest;
+            (Vec<u8>,) [serialization::param::eth_send_raw_transaction] => Digest;
 
         /// Signs and submits a transaction.
         pub struct SendTransaction as "eth_sendTransaction"
@@ -189,7 +189,7 @@ module! {
 
         /// Returns an EIP-191 signature over the provided data.
         pub struct Sign as "eth_sign"
-            (Address, Vec<u8>) [serialization::param_eth_sign] => Vec<u8> [serialization::bytes];
+            (Address, Vec<u8>) [serialization::param::eth_sign] => Vec<u8> [serialization::bytes];
 
         /// Returns an RLP encoded transaction signed by the specified account.
         pub struct SignTransaction as "eth_signTransaction"
@@ -199,7 +199,7 @@ module! {
         /// without creating transactions on the block chain, optionally
         /// overriding block and state data.
         pub struct SimulateV1 as "eth_simulateV1"
-            (SimulatePayload, Option<BlockSpec>) [serialization::param_pair_with_option] => Vec<BlockResult>;
+            (SimulatePayload, Option<BlockSpec>) [serialization::param::call_like] => Vec<BlockResult>;
 
         /// Returns an object with data about the sync status or false.
         pub struct Syncing as "eth_syncing"

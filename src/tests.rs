@@ -58,7 +58,7 @@ fn eth_blob_base_fee() {
 fn eth_block_number() {
     assert_method_serialization!(eth::BlockNumber {
         Empty => json!([]);
-        uint!("0x2377") => json!("0x2377");
+        0x2377 => json!("0x2377");
     });
 }
 
@@ -87,7 +87,7 @@ fn eth_call() {
 fn eth_chain_id() {
     assert_method_serialization!(eth::ChainId {
         Empty => json!([]);
-        uint!("0x1") => json!("0x1");
+        0x1 => json!("0x1");
     });
 }
 
@@ -112,7 +112,7 @@ fn eth_config() {
                     max: 9,
                     target: 6,
                 },
-                chain_id: uint!("0x1"),
+                chain_id: 0x1,
                 fork_id: hex!("3ff0e375"),
                 precompiles: HashMap::from([
                     ("ECREC".to_owned(),
@@ -173,7 +173,7 @@ fn eth_config() {
                     "max": 9,
                     "target": 6,
                 },
-                "chainId": "0x1",
+                "chainId": 1,
                 "forkId": "0x3ff0e375",
                 "precompiles": {
                     "ECREC": "0x0000000000000000000000000000000000000001",
@@ -231,7 +231,7 @@ fn eth_create_access_list() {
                 storage_keys: vec![digest!("0x0000000000000000000000000000000000000000000000000000000000000081")],
             }],
             error: None,
-            gas_used: uint!("0x125f8"),
+            gas_used: 0x125f8,
         } => json!({
             "accessList": [{
                 "address": "0xa02457E5Dfd32Bda5Fc7e1f1b008Aa5979568150",
@@ -258,17 +258,17 @@ fn eth_estimate_gas() {
             "to": "0x44Aa93095D6749A706051658B970b941c72c1D53",
             "value": "0x1",
         }]);
-        uint!("0x5208") => json!("0x5208");
+        0x5208 => json!("0x5208");
     });
 }
 
 #[test]
 fn eth_fee_history() {
     assert_method_serialization!(eth::FeeHistory {
-        (uint!("0x5"), BlockSpec::Tag(BlockTag::Latest), vec![20., 30.])
+        (0x5, BlockSpec::Tag(BlockTag::Latest), vec![20., 30.])
             => json!(["0x5", "latest", [20., 30.]]);
         FeeHistoryResult {
-            oldest_block: uint!("0x10b52f"),
+            oldest_block: 0x10b52f,
             base_fee_per_gas: vec![
                 uint!("0x3fa63a3f"),
                 uint!("0x37f999ee"),
@@ -388,20 +388,20 @@ fn eth_get_block_by_hash() {
                  0000000000100000000000000000000000000000000000040000900010000000"
             )),
             difficulty: uint!("0x66e619a"),
-            number: uint!("0x68b3"),
-            gas_limit: uint!("0x47e7c4"),
-            gas_used: uint!("0x37993"),
-            timestamp: uint!("0x5835c54d"),
+            number: 0x68b3,
+            gas_limit: 0x47e7c4,
+            gas_used: 0x37993,
+            timestamp: 0x5835c54d,
             extra_data: hex!("d583010502846765746885676f312e37856c696e7578").to_vec(),
             mix_hash: digest!("0x24900fb3da77674a861c428429dce0762707ecb6052325bbd9b3c64e74b5af9d"),
             nonce: BlockNonce(hex!("378da40ff335b070")),
             base_fee_per_gas: uint!("0x7"),
             withdrawals_root: digest!("0x7a4ecf19774d15cf9c15adf0dd8e8a250c128b26c9e2ab2a08d6c9c8ffbd104f"),
-            blob_gas_used: uint!("0x0"),
-            excess_blob_gas: uint!("0x0"),
+            blob_gas_used: 0x0,
+            excess_blob_gas: 0x0,
             parent_beacon_block_root: digest!("0x95c4dbd5b19f6fe3cbc3183be85ff4e85ebe75c5b4fc911f1c91e5b7a554a685"),
             requests_hash: digest!("0x0000000000000000000000000000000000000000000000000000000000000000"),
-            size: uint!("0x334"),
+            size: 0x334,
             transactions: BlockTransactions::Hash(vec![
                 digest!("0xa0807e117a8dd124ab949f460f08c36c72b710188f01609595223b325e58e0fc"),
                 digest!("0xeae6d797af50cb62a596ec3939114d63967c374fa57de9bc0f4e2b576ed6639d"),
@@ -465,7 +465,7 @@ fn eth_get_block_by_hash() {
 #[test]
 fn eth_get_block_by_number() {
     assert_method_serialization!(eth::GetBlockByNumber {
-        (BlockSpec::Number(uint!("0x68b3")), Hydrated::No) => json!(["0x68b3", false]);
+        (BlockSpec::Number(0x68b3), Hydrated::No) => json!(["0x68b3", false]);
         Some(Block {
             hash: digest!("0xd5f1812548be429cbdc6376b29611fc49e06f1359758c4ceaaa3b393e2239f9c"),
             parent_hash: digest!("0x1f68ac259155e2f38211ddad0f0a15394d55417b185a93923e2abe71bb7a4d6d"),
@@ -485,20 +485,20 @@ fn eth_get_block_by_number() {
                  0000000000100000000000000000000000000000000000040000900010000000"
             )),
             difficulty: uint!("0x66e619a"),
-            number: uint!("0x68b3"),
-            gas_limit: uint!("0x47e7c4"),
-            gas_used: uint!("0x37993"),
-            timestamp: uint!("0x5835c54d"),
+            number: 0x68b3,
+            gas_limit: 0x47e7c4,
+            gas_used: 0x37993,
+            timestamp: 0x5835c54d,
             extra_data: hex!("d583010502846765746885676f312e37856c696e7578").to_vec(),
             mix_hash: digest!("0x24900fb3da77674a861c428429dce0762707ecb6052325bbd9b3c64e74b5af9d"),
             nonce: BlockNonce(hex!("378da40ff335b070")),
             base_fee_per_gas: uint!("0x7"),
             withdrawals_root: digest!("0x7a4ecf19774d15cf9c15adf0dd8e8a250c128b26c9e2ab2a08d6c9c8ffbd104f"),
-            blob_gas_used: uint!("0x0"),
-            excess_blob_gas: uint!("0x0"),
+            blob_gas_used: 0x0,
+            excess_blob_gas: 0x0,
             parent_beacon_block_root: digest!("0x95c4dbd5b19f6fe3cbc3183be85ff4e85ebe75c5b4fc911f1c91e5b7a554a685"),
             requests_hash: digest!("0x0000000000000000000000000000000000000000000000000000000000000000"),
-            size: uint!("0x334"),
+            size: 0x334,
             transactions: BlockTransactions::Hash(vec![
                 digest!("0xa0807e117a8dd124ab949f460f08c36c72b710188f01609595223b325e58e0fc"),
                 digest!("0xeae6d797af50cb62a596ec3939114d63967c374fa57de9bc0f4e2b576ed6639d"),
@@ -567,22 +567,22 @@ fn eth_get_block_receipts() {
             TransactionReceipt {
                 kind: TransactionReceiptKind::Legacy,
                 transaction_hash: digest!("0x4a481e4649da999d92db0585c36cba94c18a33747e95dc235330e6c737c6f975"),
-                transaction_index: uint!("0x0"),
+                transaction_index: 0x0,
                 block_hash: digest!("0x19514ce955c65e4dd2cd41f435a75a46a08535b8fc16bc660f8092b32590b182"),
-                block_number: uint!("0x6f55"),
+                block_number: 0x6f55,
                 from: address!("0x22896Bfc68814BFD855b1a167255eE497006e730"),
                 to: Some(address!("0xfd584430cAfa2F451b4e2eBCF3986a21FFf04350")),
                 effective_gas_price: uint!("0x9502f907"),
-                cumulative_gas_used: uint!("0x18c36"),
-                gas_used: uint!("0x18c36"),
+                cumulative_gas_used: 0x18c36,
+                gas_used: 0x18c36,
                 contract_address: None,
                 logs: vec![Log {
                     removed: false,
-                    log_index: uint!("0x0"),
-                    transaction_index: uint!("0x0"),
+                    log_index: 0x0,
+                    transaction_index: 0x0,
                     transaction_hash: digest!("0x4a481e4649da999d92db0585c36cba94c18a33747e95dc235330e6c737c6f975"),
                     block_hash: digest!("0x19514ce955c65e4dd2cd41f435a75a46a08535b8fc16bc660f8092b32590b182"),
-                    block_number: uint!("0x6f55"),
+                    block_number: 0x6f55,
                     block_timestamp: None,
                     address: address!("0xfd584430cAfa2F451b4e2eBCF3986a21FFf04350"),
                     data: vec![],
@@ -609,14 +609,14 @@ fn eth_get_block_receipts() {
             TransactionReceipt {
                 kind: TransactionReceiptKind::Eip1559,
                 transaction_hash: digest!("0xefb83b4e3f1c317e8da0f8e2fbb2fe964f34ee184466032aeecac79f20eacaf6"),
-                transaction_index: uint!("0x1"),
+                transaction_index: 0x1,
                 block_hash: digest!("0x19514ce955c65e4dd2cd41f435a75a46a08535b8fc16bc660f8092b32590b182"),
-                block_number: uint!("0x6f55"),
+                block_number: 0x6f55,
                 from: address!("0x712e3A792c974B3E3dbE41229Ad4290791C75A82"),
                 to: Some(address!("0xd42e2B1c14D02F1Df5369A9827CB8E6f3f75F338")),
                 effective_gas_price: uint!("0x9502f907"),
-                cumulative_gas_used: uint!("0x1de3e"),
-                gas_used: uint!("0x5208"),
+                cumulative_gas_used: 0x1de3e,
+                gas_used: 0x5208,
                 contract_address: None,
                 logs: vec![],
                 logs_bloom: Bloom::zero(),
@@ -698,15 +698,15 @@ fn eth_get_block_transaction_count_by_hash() {
     assert_method_serialization!(eth::GetBlockTransactionCountByHash {
         (digest!("0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"),)
             => json!(["0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"]);
-        Some(uint!("0x8")) => json!("0x8");
+        Some(0x8) => json!("0x8");
     });
 }
 
 #[test]
 fn eth_get_block_transaction_count_by_number() {
     assert_method_serialization!(eth::GetBlockTransactionCountByNumber {
-        (BlockSpec::Number(uint!("0xe8")),) => json!(["0xe8"]);
-        Some(uint!("0x8")) => json!("0x8");
+        (BlockSpec::Number(0xe8),) => json!(["0xe8"]);
+        Some(0x8) => json!("0x8");
     });
 }
 
@@ -750,11 +750,11 @@ fn eth_get_filter_changes() {
         FilterChanges::Logs(vec![
             Log {
                 removed: false,
-                log_index: uint!("0x0"),
-                transaction_index: uint!("0x0"),
+                log_index: 0x0,
+                transaction_index: 0x0,
                 transaction_hash: digest!("0x66e7a140c8fa27fe98fde923defea7562c3ca2d6bb89798aabec65782c08f63d"),
                 block_hash: digest!("0xfc139f5e2edee9e9c888d8df9a2d2226133a9bd87c88ccbd9c930d3d4c9f9ef5"),
-                block_number: uint!("0x233"),
+                block_number: 0x233,
                 block_timestamp: Some(0x11),
                 address: address!("0x42699A7612A82f1d9C36148af9C77354759b210b"),
                 data: hex!("0000000000000000000000000000000000000000000000000000000000000004").to_vec(),
@@ -764,11 +764,11 @@ fn eth_get_filter_changes() {
             },
             Log {
                 removed: false,
-                log_index: uint!("0x0"),
-                transaction_index: uint!("0x0"),
+                log_index: 0x0,
+                transaction_index: 0x0,
                 transaction_hash: digest!("0xdb17aa1c2ce609132f599155d384c0bc5334c988a6c368056d7e167e23eee058"),
                 block_hash: digest!("0x98b0ec0f9fea0018a644959accbe69cd046a8582e89402e1ab0ada91cad644ed"),
-                block_number: uint!("0x238"),
+                block_number: 0x238,
                 block_timestamp: Some(0x22),
                 address: address!("0x42699A7612A82f1d9C36148af9C77354759b210b"),
                 data: hex!("0000000000000000000000000000000000000000000000000000000000000007").to_vec(),
@@ -816,11 +816,11 @@ fn eth_get_filter_logs() {
         vec![
             Log {
                 removed: false,
-                log_index: uint!("0x0"),
-                transaction_index: uint!("0x0"),
+                log_index: 0x0,
+                transaction_index: 0x0,
                 transaction_hash: digest!("0x66e7a140c8fa27fe98fde923defea7562c3ca2d6bb89798aabec65782c08f63d"),
                 block_hash: digest!("0xfc139f5e2edee9e9c888d8df9a2d2226133a9bd87c88ccbd9c930d3d4c9f9ef5"),
-                block_number: uint!("0x233"),
+                block_number: 0x233,
                 block_timestamp: Some(0x11),
                 address: address!("0x42699A7612A82f1d9C36148af9C77354759b210b"),
                 data: hex!("0000000000000000000000000000000000000000000000000000000000000004").to_vec(),
@@ -830,11 +830,11 @@ fn eth_get_filter_logs() {
             },
             Log {
                 removed: false,
-                log_index: uint!("0x0"),
-                transaction_index: uint!("0x0"),
+                log_index: 0x0,
+                transaction_index: 0x0,
                 transaction_hash: digest!("0xdb17aa1c2ce609132f599155d384c0bc5334c988a6c368056d7e167e23eee058"),
                 block_hash: digest!("0x98b0ec0f9fea0018a644959accbe69cd046a8582e89402e1ab0ada91cad644ed"),
-                block_number: uint!("0x238"),
+                block_number: 0x238,
                 block_timestamp: Some(0x22),
                 address: address!("0x42699A7612A82f1d9C36148af9C77354759b210b"),
                 data: hex!("0000000000000000000000000000000000000000000000000000000000000007").to_vec(),
@@ -880,8 +880,8 @@ fn eth_get_logs() {
     assert_method_serialization!(eth::GetLogs {
         (LogFilter {
             blocks: LogFilterBlocks::Range {
-                from: BlockSpec::Number(uint!("0x137d3c2")),
-                to: BlockSpec::Number(uint!("0x137d3c3")),
+                from: BlockSpec::Number(0x137d3c2),
+                to: BlockSpec::Number(0x137d3c3),
             },
             address: LogFilterValue::Exact(address!("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")),
             topics: ArrayVec::new(),
@@ -894,11 +894,11 @@ fn eth_get_logs() {
         vec![
             Log {
                 removed: false,
-                log_index: uint!("0x0"),
-                transaction_index: uint!("0x0"),
+                log_index: 0x0,
+                transaction_index: 0x0,
                 transaction_hash: digest!("0x66e7a140c8fa27fe98fde923defea7562c3ca2d6bb89798aabec65782c08f63d"),
                 block_hash: digest!("0xfc139f5e2edee9e9c888d8df9a2d2226133a9bd87c88ccbd9c930d3d4c9f9ef5"),
-                block_number: uint!("0x233"),
+                block_number: 0x233,
                 block_timestamp: Some(0x11),
                 address: address!("0x42699A7612A82f1d9C36148af9C77354759b210b"),
                 data: hex!("0000000000000000000000000000000000000000000000000000000000000004").to_vec(),
@@ -908,11 +908,11 @@ fn eth_get_logs() {
             },
             Log {
                 removed: false,
-                log_index: uint!("0x0"),
-                transaction_index: uint!("0x0"),
+                log_index: 0x0,
+                transaction_index: 0x0,
                 transaction_hash: digest!("0xdb17aa1c2ce609132f599155d384c0bc5334c988a6c368056d7e167e23eee058"),
                 block_hash: digest!("0x98b0ec0f9fea0018a644959accbe69cd046a8582e89402e1ab0ada91cad644ed"),
-                block_number: uint!("0x238"),
+                block_number: 0x238,
                 block_timestamp: Some(0x22),
                 address: address!("0x42699A7612A82f1d9C36148af9C77354759b210b"),
                 data: hex!("0000000000000000000000000000000000000000000000000000000000000007").to_vec(),
@@ -1323,14 +1323,14 @@ fn eth_get_transaction_by_block_hash_and_index() {
     assert_method_serialization!(eth::GetTransactionByBlockHashAndIndex {
         (
             digest!("0xbf137c3a7a1ebdfac21252765e5d7f40d115c2757e4a4abee929be88c624fdb7"),
-            uint!("0x2"),
+            0x2,
         ) => json!([
             "0xbf137c3a7a1ebdfac21252765e5d7f40d115c2757e4a4abee929be88c624fdb7",
             "0x2",
         ]);
         Some(SignedTransaction::Legacy(SignedLegacyTransaction {
             block_hash: digest!("0x510efccf44a192e6e34bcb439a1947e24b86244280762cbb006858c237093fda"),
-            block_number: uint!("0x422"),
+            block_number: 0x422,
             block_timestamp: None,
             from: address!("0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"),
             gas: 0x5208,
@@ -1341,8 +1341,8 @@ fn eth_get_transaction_by_block_hash_and_index() {
             to: Some(address!("0x627306090abaB3A6e1400e9345bC60c78a8BEf57")),
             transaction_index: 0x0,
             value: uint!("0x4e1003b28d9280000"),
-            chain_id: Some(uint!("0x7e2")),
-            v: uint!("0xfe7"),
+            chain_id: Some(0x7e2),
+            v: 0xfe7,
             r: uint!("0x84caf09aefbd5e539295acc67217563438a4efb224879b6855f56857fa2037d3"),
             s: uint!("0x5e863be3829812c81439f0ae9d8ecb832b531d651fb234c848d1bf45e62be8b9"),
         })) => json!({
@@ -1369,11 +1369,11 @@ fn eth_get_transaction_by_block_hash_and_index() {
 #[test]
 fn eth_get_transaction_by_block_number_and_index() {
     assert_method_serialization!(eth::GetTransactionByBlockNumberAndIndex {
-        (BlockSpec::Number(uint!("0x1442e")), uint!("0x2"))
+        (BlockSpec::Number(0x1442e), 0x2)
             => json!(["0x1442e", "0x2"]);
         Some(SignedTransaction::Legacy(SignedLegacyTransaction {
             block_hash: digest!("0x510efccf44a192e6e34bcb439a1947e24b86244280762cbb006858c237093fda"),
-            block_number: uint!("0x422"),
+            block_number: 0x422,
             block_timestamp: None,
             from: address!("0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"),
             gas: 0x5208,
@@ -1384,8 +1384,8 @@ fn eth_get_transaction_by_block_number_and_index() {
             to: Some(address!("0x627306090abaB3A6e1400e9345bC60c78a8BEf57")),
             transaction_index: 0x0,
             value: uint!("0x4e1003b28d9280000"),
-            chain_id: Some(uint!("0x7e2")),
-            v: uint!("0xfe7"),
+            chain_id: Some(0x7e2),
+            v: 0xfe7,
             r: uint!("0x84caf09aefbd5e539295acc67217563438a4efb224879b6855f56857fa2037d3"),
             s: uint!("0x5e863be3829812c81439f0ae9d8ecb832b531d651fb234c848d1bf45e62be8b9"),
         })) => json!({
@@ -1416,7 +1416,7 @@ fn eth_get_transaction_by_hash() {
             => json!(["0xa52be92809541220ee0aaaede6047d9a6c5d0cd96a517c854d944ee70a0ebb44"]);
         Some(SignedTransaction::Legacy(SignedLegacyTransaction {
             block_hash: digest!("0x510efccf44a192e6e34bcb439a1947e24b86244280762cbb006858c237093fda"),
-            block_number: uint!("0x422"),
+            block_number: 0x422,
             block_timestamp: None,
             from: address!("0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"),
             gas: 0x5208,
@@ -1427,8 +1427,8 @@ fn eth_get_transaction_by_hash() {
             to: Some(address!("0x627306090abaB3A6e1400e9345bC60c78a8BEf57")),
             transaction_index: 0x0,
             value: uint!("0x4e1003b28d9280000"),
-            chain_id: Some(uint!("0x7e2")),
-            v: uint!("0xfe7"),
+            chain_id: Some(0x7e2),
+            v: 0xfe7,
             r: uint!("0x84caf09aefbd5e539295acc67217563438a4efb224879b6855f56857fa2037d3"),
             s: uint!("0x5e863be3829812c81439f0ae9d8ecb832b531d651fb234c848d1bf45e62be8b9"),
         })) => json!({
@@ -1462,7 +1462,7 @@ fn eth_get_transaction_count() {
             "0xc94770007dda54cF92009BFF0dE90c06F603a09f",
             "latest",
         ]);
-        uint!("0x1") => json!("0x1");
+        0x1 => json!("0x1");
     });
 }
 
@@ -1473,18 +1473,18 @@ fn eth_get_transaction_receipt() {
             => json!(["0x504ce587a65bdbdb6414a0c6c16d86a04dd79bfcc4f2950eec9634b30ce5370f"]);
         Some(TransactionReceipt {
             kind: TransactionReceiptKind::Eip4844 {
-                blob_gas_used: uint!("0x20000"),
+                blob_gas_used: 0x20000,
                 blob_gas_price: uint!("0x3"),
             },
             transaction_hash: digest!("0xc00e97af59c6f88de163306935f7682af1a34c67245e414537d02e422815efc3"),
-            transaction_index: uint!("0x0"),
+            transaction_index: 0x0,
             block_hash: digest!("0xe7212a92cfb9b06addc80dec2a0dfae9ea94fd344efeb157c41e12994fcad60a"),
-            block_number: uint!("0x50"),
+            block_number: 0x50,
             from: address!("0x627306090abaB3A6e1400e9345bC60c78a8BEf57"),
             to: Some(address!("0xf17f52151EbEF6C7334FAD080c5704D77216b732")),
             effective_gas_price: uint!("0x1"),
-            cumulative_gas_used: uint!("0x5208"),
-            gas_used: uint!("0x5208"),
+            cumulative_gas_used: 0x5208,
+            gas_used: 0x5208,
             contract_address: None,
             logs: vec![],
             logs_bloom: Bloom([0; 256]),
@@ -1540,8 +1540,8 @@ fn eth_new_filter() {
     assert_method_serialization!(eth::NewFilter {
         (LogFilter {
             blocks: LogFilterBlocks::Range {
-                from: BlockSpec::Number(uint!("0x137d3c2")),
-                to: BlockSpec::Number(uint!("0x137d3c3")),
+                from: BlockSpec::Number(0x137d3c2),
+                to: BlockSpec::Number(0x137d3c3),
             },
             address: LogFilterValue::Exact(address!("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")),
             topics: ArrayVec::new(),
@@ -1590,7 +1590,7 @@ fn eth_send_transaction() {
         (Transaction {
             from: Some(address!("0xb60E8dD61C5d32be8058BB8eb970870F07233155")),
             to: Some(address!("0xd46E8dD67C5d32be8058Bb8Eb970870F07244567")),
-            gas: Some(uint!("0x76c0")),
+            gas: Some(0x76c0),
             gas_price: Some(uint!("0x9184e72a000")),
             value: Some(uint!("0x9184e72a")),
             input: Some(
@@ -1644,7 +1644,7 @@ fn eth_sign_transaction() {
         (Transaction {
             from: Some(address!("0xb60E8dD61C5d32be8058BB8eb970870F07233155")),
             to: Some(address!("0xd46E8dD67C5d32be8058Bb8Eb970870F07244567")),
-            gas: Some(uint!("0x76c0")),
+            gas: Some(0x76c0),
             gas_price: Some(uint!("0x9184e72a000")),
             value: Some(uint!("0x9184e72a")),
             input: Some(
@@ -1723,20 +1723,20 @@ fn eth_simulate_v1() {
                 receipts_root: digest!("0xf78dfb743fbd92ade140711c8bbc542b5e307f0ab7984eff35d751969fe57efa"),
                 logs_bloom: Bloom([0; 256]),
                 difficulty: uint!("0x0"),
-                number: uint!("0x1798e67"),
-                gas_limit: uint!("0x3938700"),
-                gas_used: uint!("0x5208"),
-                timestamp: uint!("0x69c57aeb"),
+                number: 0x1798e67,
+                gas_limit: 0x3938700,
+                gas_used: 0x5208,
+                timestamp: 0x69c57aeb,
                 extra_data: vec![],
                 mix_hash: digest!("0x0000000000000000000000000000000000000000000000000000000000000000"),
                 nonce: BlockNonce([0; 8]),
                 base_fee_per_gas: uint!("0x0"),
                 withdrawals_root: digest!("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
-                blob_gas_used: uint!("0x0"),
-                excess_blob_gas: uint!("0xb5eba70"),
+                blob_gas_used: 0x0,
+                excess_blob_gas: 0xb5eba70,
                 parent_beacon_block_root: digest!("0x0000000000000000000000000000000000000000000000000000000000000000"),
                 requests_hash: digest!("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
-                size: uint!("0x295"),
+                size: 0x295,
                 transactions: BlockTransactions::Hash(vec![
                     digest!("0xaa0f891967daa09f2813be3cfec01338649a13d24accee47331cfd801647a0bb"),
                 ]),
@@ -1800,9 +1800,9 @@ fn eth_syncing() {
     assert_method_serialization!(eth::Syncing {
         Empty => json!([]);
         SyncingStatus::Syncing(SyncingProgress {
-            starting_block: uint!("0x0"),
-            current_block: uint!("0x1518"),
-            highest_block: uint!("0x9567a3"),
+            starting_block: 0x0,
+            current_block: 0x1518,
+            highest_block: 0x9567a3,
         }) => json!({
             "startingBlock": "0x0",
             "currentBlock": "0x1518",

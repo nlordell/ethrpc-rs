@@ -231,6 +231,7 @@ mod tests {
         eth,
         types::{BlockTag, Empty, Hydrated, TransactionReceiptKind},
     };
+    use ethprim::uint;
     use serde_json::json;
 
     fn roundtrip(
@@ -554,8 +555,8 @@ mod tests {
         assert_eq!(
             receipts.unwrap()[0].kind,
             TransactionReceiptKind::Eip4844 {
-                blob_gas_used: 291_u64.into(),
-                blob_gas_price: 74_565_u64.into(),
+                blob_gas_used: 291,
+                blob_gas_price: uint!("74_565"),
             }
         );
         assert_eq!(latest, 0x1163fd1);

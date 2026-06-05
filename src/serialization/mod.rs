@@ -1,6 +1,6 @@
 //! JSON serialization helpers.
 
-#![allow(dead_code)]
+pub mod param;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
@@ -249,12 +249,48 @@ pub mod num {
     }
 
     #[doc(hidden)]
+    #[repr(transparent)]
+    pub struct Quantity<T>(pub T);
+
+    impl<T> Quantity<T> {
+        #[doc(hidden)]
+        pub fn from_ref(value: &T) -> &'_ Self {
+            // SAFETY: `Quantity` and `T` have the same memory layout.
+            unsafe { &*(value as *const T).cast::<Self>() }
+        }
+    }
+
+    impl<T> Serialize for Quantity<T>
+    where
+        T: Num,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            self.0.to_hex().serialize(serializer)
+        }
+    }
+
+    impl<'de, T> Deserialize<'de> for Quantity<T>
+    where
+        T: Num,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            T::from_hex(&Cow::<str>::deserialize(deserializer)?).map(Quantity)
+        }
+    }
+
+    #[doc(hidden)]
     pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
     where
         T: Num,
         S: Serializer,
     {
-        value.to_hex().serialize(serializer)
+        Quantity::from_ref(value).serialize(serializer)
     }
 
     #[doc(hidden)]
@@ -263,14 +299,16 @@ pub mod num {
         T: Num,
         D: Deserializer<'de>,
     {
-        T::from_hex(&Cow::<str>::deserialize(deserializer)?)
+        Ok(Quantity::deserialize(deserializer)?.0)
     }
 }
 
 /// Serialize optional `0x` prefixed hex numbers.
 pub mod option_num {
-    use super::{num::Num, *};
-    use std::borrow::Cow;
+    use super::{
+        num::{Num, Quantity},
+        *,
+    };
 
     #[doc(hidden)]
     pub fn serialize<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
@@ -278,10 +316,7 @@ pub mod option_num {
         T: Num,
         S: Serializer,
     {
-        match value {
-            Some(value) => serializer.serialize_some(&value.to_hex()),
-            None => serializer.serialize_none(),
-        }
+        value.as_ref().map(Quantity::from_ref).serialize(serializer)
     }
 
     #[doc(hidden)]
@@ -290,103 +325,6 @@ pub mod option_num {
         T: Num,
         D: Deserializer<'de>,
     {
-        match Option::<Cow<str>>::deserialize(deserializer)? {
-            Some(value) => Ok(Some(T::from_hex(&value)?)),
-            None => Ok(None),
-        }
-    }
-}
-
-/// Serialize tuple with an optional last value.
-pub mod param_pair_with_option {
-    use super::*;
-
-    #[doc(hidden)]
-    pub fn serialize<S, A, B>((a, b): &(A, Option<B>), serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-        A: Serialize,
-        B: Serialize,
-    {
-        if let Some(b) = b {
-            (a, b).serialize(serializer)
-        } else {
-            (a,).serialize(serializer)
-        }
-    }
-
-    #[doc(hidden)]
-    pub fn deserialize<'de, D, A, B>(deserializer: D) -> Result<(A, Option<B>), D::Error>
-    where
-        D: Deserializer<'de>,
-        A: Deserialize<'de>,
-        B: Deserialize<'de>,
-    {
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum Inner<A, B> {
-            Both((A, B)),
-            Single((A,)),
-        }
-
-        match Inner::deserialize(deserializer)? {
-            Inner::Both((a, b)) => Ok((a, Some(b))),
-            Inner::Single((a,)) => Ok((a, None)),
-        }
-    }
-}
-
-/// Serialize a single bytes parameter as a one-item JSON RPC params array.
-pub mod param_eth_send_raw_transaction {
-    use super::{
-        bytes::{decode, encode},
-        *,
-    };
-    use std::{borrow::Cow, str};
-
-    #[doc(hidden)]
-    pub fn serialize<S>(value: &(Vec<u8>,), serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        (encode(&value.0),).serialize(serializer)
-    }
-
-    #[doc(hidden)]
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<(Vec<u8>,), D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let (hex,): (Cow<str>,) = Deserialize::deserialize(deserializer)?;
-        let bytes = decode(&hex)?;
-        Ok((bytes,))
-    }
-}
-
-/// Serialize `(address, bytes)` as JSON RPC params.
-pub mod param_eth_sign {
-    use super::{
-        bytes::{decode, encode},
-        *,
-    };
-    use ethprim::Address;
-    use std::{borrow::Cow, str};
-
-    #[doc(hidden)]
-    pub fn serialize<S>(value: &(Address, Vec<u8>), serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let (address, bytes) = value;
-        (address, encode(bytes)).serialize(serializer)
-    }
-
-    #[doc(hidden)]
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<(Address, Vec<u8>), D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let (address, hex): (Address, Cow<str>) = Deserialize::deserialize(deserializer)?;
-        Ok((address, decode(&hex)?))
+        Ok(Option::<Quantity<T>>::deserialize(deserializer)?.map(|value| value.0))
     }
 }

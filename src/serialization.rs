@@ -297,6 +297,45 @@ pub mod option_num {
     }
 }
 
+/// Serialize tuple with an optional last value.
+pub mod param_pair_with_option {
+    use super::*;
+
+    #[doc(hidden)]
+    pub fn serialize<S, A, B>((a, b): &(A, Option<B>), serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        A: Serialize,
+        B: Serialize,
+    {
+        if let Some(b) = b {
+            (a, b).serialize(serializer)
+        } else {
+            (a,).serialize(serializer)
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn deserialize<'de, D, A, B>(deserializer: D) -> Result<(A, Option<B>), D::Error>
+    where
+        D: Deserializer<'de>,
+        A: Deserialize<'de>,
+        B: Deserialize<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Inner<A, B> {
+            Both((A, B)),
+            Single((A,)),
+        }
+
+        match Inner::deserialize(deserializer)? {
+            Inner::Both((a, b)) => Ok((a, Some(b))),
+            Inner::Single((a,)) => Ok((a, None)),
+        }
+    }
+}
+
 /// Serialize a single bytes parameter as a one-item JSON RPC params array.
 pub mod param_eth_send_raw_transaction {
     use super::{

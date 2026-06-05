@@ -36,7 +36,7 @@ module! {
         /// Executes a new message call immediately without creating a
         /// transaction on the block chain.
         pub struct Call as "eth_call"
-            (Transaction, Option<BlockId>) => Vec<u8> [serialization::bytes];
+            (Transaction, Option<BlockId>) [serialization::param_pair_with_option] => Vec<u8> [serialization::bytes];
 
         /// Returns the chain ID of the current network.
         pub struct ChainId as "eth_chainId"
@@ -52,12 +52,12 @@ module! {
 
         /// Generates an access list for a transaction.
         pub struct CreateAccessList as "eth_createAccessList"
-            (Transaction, Option<BlockSpec>) => AccessListResult;
+            (Transaction, Option<BlockSpec>) [serialization::param_pair_with_option] => AccessListResult;
 
         /// Generates and returns an estimate of how much gas is necessary to
         /// allow the transaction to complete.
         pub struct EstimateGas as "eth_estimateGas"
-            (Transaction, Option<BlockSpec>) => U256;
+            (Transaction, Option<BlockSpec>) [serialization::param_pair_with_option] => U256;
 
         /// Returns transaction base fee per gas and effective priority fee per
         /// gas for the requested/supported block range.
@@ -197,7 +197,7 @@ module! {
         /// without creating transactions on the block chain, optionally
         /// overriding block and state data.
         pub struct SimulateV1 as "eth_simulateV1"
-            (SimulatePayload, Option<BlockSpec>) => Vec<BlockResult>;
+            (SimulatePayload, Option<BlockSpec>) [serialization::param_pair_with_option] => Vec<BlockResult>;
 
         /// Returns an object with data about the sync status or false.
         pub struct Syncing as "eth_syncing"

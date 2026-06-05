@@ -355,7 +355,7 @@ mod tests {
     use super::*;
     use crate::{
         eth, net,
-        types::{BlockId, Empty, Transaction},
+        types::{Empty, Transaction},
     };
     use ethprim::address;
     use hex_literal::hex;
@@ -405,7 +405,7 @@ mod tests {
                     input: Some(hex!("f698da25").to_vec()),
                     ..Default::default()
                 },
-                Some(BlockId::default()),
+                None,
             ),
             roundtrip(
                 json!({
@@ -415,7 +415,6 @@ mod tests {
                             "to": "0x9008D19f58AAbD9eD0D60971565AA8510560ab41",
                             "input": "0xf698da25",
                         },
-                        "latest",
                     ],
                 }),
                 json!("0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943"),

@@ -22,9 +22,7 @@ pub struct Empty;
 
 impl Debug for Empty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_tuple("Empty")
-            .field(&[(); 0])
-            .finish()
+        f.debug_tuple("Empty").field(&[(); 0]).finish()
     }
 }
 
@@ -48,7 +46,7 @@ impl<'de> Deserialize<'de> for Empty {
 }
 
 /// Block number or tag.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BlockSpec {
     /// Block by number.
@@ -82,7 +80,7 @@ impl From<BlockTag> for BlockSpec {
 }
 
 /// Block number, tag, or block hash.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BlockId {
     /// Block by number.
@@ -127,7 +125,7 @@ impl From<BlockSpec> for BlockId {
 }
 
 /// Block tag.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BlockTag {
     /// The lowest numbered block the client has available.
@@ -167,7 +165,7 @@ impl FilterId {
 }
 
 /// Whether block transactions should be hydrated.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Hydrated {
     /// Only fetch transaction hashes for blocks.
     #[default]
@@ -317,8 +315,12 @@ pub struct SignedLegacyTransaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
-    pub block_timestamp: u64,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub block_timestamp: Option<u64>,
     /// Address of transaction sender.
     pub from: Address,
     /// The limit in gas units for the transaction.
@@ -385,8 +387,12 @@ pub struct SignedEip2930Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
-    pub block_timestamp: u64,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub block_timestamp: Option<u64>,
     /// Address of transaction sender.
     pub from: Address,
     /// The limit in gas units for the transaction.
@@ -456,8 +462,12 @@ pub struct SignedEip1559Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
-    pub block_timestamp: u64,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub block_timestamp: Option<u64>,
     /// Address of transaction sender.
     pub from: Address,
     /// The limit in gas units for the transaction.
@@ -531,8 +541,12 @@ pub struct SignedEip4844Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
-    pub block_timestamp: u64,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub block_timestamp: Option<u64>,
     /// Address of transaction sender.
     pub from: Address,
     /// The limit in gas units for the transaction.
@@ -613,8 +627,12 @@ pub struct SignedEip7702Transaction {
     /// The height of the block containing the transaction.
     pub block_number: U256,
     /// The timestamp of the block containing the transaction.
-    #[serde(with = "serialization::num")]
-    pub block_timestamp: u64,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub block_timestamp: Option<u64>,
     /// Address of transaction sender.
     pub from: Address,
     /// The limit in gas units for the transaction.
@@ -738,9 +756,6 @@ pub struct Block {
     pub mix_hash: Digest,
     /// The nonce.
     pub nonce: BlockNonce,
-    /// The total difficulty.
-    #[serde(default)]
-    pub total_difficulty: U256,
     /// The base fee per gas.
     #[serde(default)]
     pub base_fee_per_gas: U256,
@@ -789,7 +804,6 @@ impl Debug for Block {
             .field("extra_data", &debug::Hex(&self.extra_data))
             .field("mix_hash", &self.mix_hash)
             .field("nonce", &self.nonce)
-            .field("total_difficulty", &self.total_difficulty)
             .field("base_fee_per_gas", &self.base_fee_per_gas)
             .field("withdrawals_root", &self.withdrawals_root)
             .field("blob_gas_used", &self.blob_gas_used)
@@ -828,7 +842,11 @@ pub struct Transaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<U256>,
     /// The calldata associated with the transaction.
+    ///
+    /// The `data` field is accepted as a legacy alias when deserializing.
     #[serde(
+        default,
+        alias = "data",
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_bytes"
     )]
@@ -859,6 +877,7 @@ pub struct Transaction {
     pub blob_versioned_hashes: Option<Vec<Digest>>,
     /// Raw blob data.
     #[serde(
+        default,
         skip_serializing_if = "Option::is_none",
         with = "serialization::option_vec_bytes"
     )]
@@ -922,7 +941,7 @@ pub struct AccessListEntry {
     /// The address.
     pub address: Address,
     /// The storage keys.
-    pub storage_keys: Vec<U256>,
+    pub storage_keys: Vec<Digest>,
 }
 
 /// Created access list result.
@@ -1133,6 +1152,7 @@ pub struct SyncingProgress {
 }
 
 /// Syncing status.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SyncingStatus {
     /// Syncing is in progress.
     Syncing(SyncingProgress),
@@ -1205,7 +1225,7 @@ pub struct ForkConfiguration {
 
 impl Debug for ForkConfiguration {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_struct("ForkConfig")
+        f.debug_struct("ForkConfiguration")
             .field("activation_time", &self.activation_time)
             .field("blob_schedule", &self.blob_schedule)
             .field("chain_id", &self.chain_id)
@@ -1301,7 +1321,7 @@ impl Debug for AccountOverrides {
 }
 
 /// Filter block selector.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LogFilterBlocks {
     /// An inclusive block range to include logs for.
     Range { from: BlockSpec, to: BlockSpec },
@@ -1320,7 +1340,7 @@ impl Default for LogFilterBlocks {
 }
 
 /// A value used for filtering logs.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum LogFilterValue<T> {
     /// A filter that accepts all values.
     #[default]
@@ -1371,7 +1391,7 @@ where
 }
 
 /// A filter for querying logs from a node.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct LogFilter {
     /// The blocks to fetch logs for.
     pub blocks: LogFilterBlocks,
@@ -1564,8 +1584,12 @@ pub struct Log {
     /// The height of the block containing the log.
     pub block_number: U256,
     /// The timestamp of the block containing the log.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub block_timestamp: Option<U256>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serialization::option_num"
+    )]
+    pub block_timestamp: Option<u64>,
     /// The address of the contract that emitted the log.
     pub address: Address,
     /// The data emitted with the log.
@@ -1622,7 +1646,6 @@ pub struct TransactionReceipt {
     /// The amount of gas used for this specific transaction alone.
     pub gas_used: U256,
     /// Contract address created, or [`None`] if not a deployment.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub contract_address: Option<Address>,
     /// Logs emitted by the transaction.
     pub logs: Vec<Log>,

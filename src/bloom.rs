@@ -11,6 +11,13 @@ use std::fmt::{self, Debug, Formatter};
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Bloom(pub [u8; 256]);
 
+impl Bloom {
+    /// Returns the empty bloom filter.
+    pub const fn zero() -> Self {
+        Self([0; 256])
+    }
+}
+
 impl Default for Bloom {
     fn default() -> Self {
         Self([0; 256])

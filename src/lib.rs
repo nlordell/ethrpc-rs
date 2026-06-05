@@ -14,9 +14,9 @@ pub mod method;
 mod bloom;
 mod debug;
 mod serialization;
-pub mod types;
 #[cfg(test)]
 mod tests;
+pub mod types;
 
 use self::types::*;
 
